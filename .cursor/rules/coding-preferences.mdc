@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Coding pattern preferences
+
+- Tech stack is Typescript React and SCSS
+- Avoid having files over 500 lines of code. Refactor at that point.
