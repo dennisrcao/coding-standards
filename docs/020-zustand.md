@@ -1,10 +1,10 @@
----
+```yaml
 description: Zustand store pattern for web/src/stores — selector-first, actions namespace, no whole-store subscribe
 globs:
   - "apps/web/src/stores/**/*.ts"
   - "apps/web/src/**/*.tsx"
 alwaysApply: false
----
+```
 
 # Zustand (`apps/web/src/stores`)
 

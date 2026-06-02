@@ -1,10 +1,10 @@
----
+```yaml
 description: FastAPI — async vs sync routes, Pydantic v2, dependencies, structure; aligns with common fastapi-best-practices guides
 globs:
   - "apps/api/**/*.py"
   - "packages/**/*.py"
 alwaysApply: false
----
+```
 
 # FastAPI (`apps/api/`)
 

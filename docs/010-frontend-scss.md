@@ -1,10 +1,10 @@
----
+```yaml
 description: Colocated React + SCSS modules — nesting follows JSX, design tokens, className patterns
 globs:
   - "apps/web/src/**/*.tsx"
   - "apps/web/src/**/*.module.scss"
 alwaysApply: false
----
+```
 
 # Frontend (`apps/web/src/`)
 
