@@ -92,6 +92,10 @@ can't see: unreferenced files/exports, unused dependencies, cross-file duplicati
 complexity hotspots, and architectural-boundary violations — and gates PRs on the **changed**
 code.
 
+> The install/config below is the baseline. For the **anti-slop policy** — advisory
+> vs blocking gates, `--gate new-only`, and how to tune `.fallowrc.json` so the gate
+> stays useful — see [`050-anti-slop`](050-anti-slop.md).
+
 ### Install
 
 ```bash
