@@ -38,3 +38,7 @@ If JSX is `div.root > div.toolbar > button.btn`, the module should have `.root {
 ## Pairing
 
 If you change layout/styling in TSX, update the colocated `.module.scss` in the same change. Shared design tokens live under your styles folder (e.g. `apps/web/src/styles/_variables.scss` with Sass `@use`).
+
+## Unused classes
+
+Classes can drift out of sync — defined in the `.module.scss` but no longer referenced. No maintained linter or VS Code extension catches this on a modern ESLint; see [080 Unused CSS-Module classes](080-unused-scss-classes.md) for a zero-dep script and the rationale.
