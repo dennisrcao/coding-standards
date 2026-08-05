@@ -82,6 +82,64 @@ A standalone (non-monorepo) project just keeps the single config and the `eslint
 - [ ] **No Prettier**, no `eslint-config-prettier` — `@stylistic` owns formatting
 - [ ] Ignore build output (`dist/**`)
 
+### Packed named imports (no one-name-per-line)
+
+**Do not** break named imports Prettier-style — one specifier per line. Keep imports
+**compact**: multiple names on one line when they fit; when wrapping, **pack** each
+continued line with as many names as fit under the line-length budget.
+
+This is the opposite of Prettier's default multiline import style and is intentional:
+dense import blocks scan faster and diff more cleanly.
+
+**Line-length budget:** pick one per repo and stick to it — **120** in the studio app
+v2 (`apps/studio`), **150** elsewhere unless a project doc says otherwise.
+
+```ts
+// GOOD — single line when it fits
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home } from "lucide-react";
+
+// GOOD — wrapped, but still packed (not one name per line)
+import {
+  Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home, LayoutGrid,
+  Settings, Clapperboard, ShieldCheck, Building2, Undo2,
+} from "lucide-react";
+
+// BAD — gratuitous one-name-per-line (Prettier-style)
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
+```
+
+**Pair with `@stylistic/object-curly-newline`** so ESLint does not force imports onto
+multiple lines prematurely:
+
+```js
+'@stylistic/object-curly-newline': [
+  'error',
+  { ImportDeclaration: 'never', ExportDeclaration: 'never' },
+],
+```
+
+**Enforcement in app-monorepo:** custom ESLint rule `local/packed-named-imports`
+in `apps/studio/eslint-rules/packed-named-imports.mjs`, enabled for
+`src/components/v2/**/*.{ts,tsx}` via `apps/studio/eslint.config.mjs`. It errors on
+one-specifier-per-line wrapped imports and auto-fixes by repacking. Documented in
+`apps/studio/AGENTS.md` → *Lint and format*.
+
+**Adopt in a new repo:**
+
+1. Copy the rule module (or reimplement the same check).
+2. Register it in `eslint.config.mjs` for the TS/TSX trees you care about.
+3. Add the good/bad examples above to that package's `AGENTS.md` or a local
+   `.cursor/rules/030-formatting.mdc` so agents and reviewers see the same bar.
+
+Cursor rule template: [`.cursor/rules/030-formatting.mdc`](../../../.cursor/rules/030-formatting.mdc)
+(relative from this doc — lives at the `docs-hub` repo root).
+
 ---
 
 ## 2. Fallow — repo-quality baseline & PR gate
