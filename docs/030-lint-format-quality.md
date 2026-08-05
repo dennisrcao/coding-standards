@@ -42,6 +42,7 @@ Reference implementation: [`apps/web/eslint.config.mjs`](../../storyboard-agent/
 import eslint from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
 import tseslint from 'typescript-eslint';
+import { packedNamedImportsRule } from './eslint-rules/packed-named-imports.mjs';
 
 export default tseslint.config(
   { ignores: ['dist/**'] },
@@ -49,7 +50,10 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     files: ['src/**/*.{ts,tsx}'],
-    plugins: { '@stylistic': stylistic },
+    plugins: {
+      '@stylistic': stylistic,
+      local: { rules: { 'packed-named-imports': packedNamedImportsRule } },
+    },
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -57,10 +61,7 @@ export default tseslint.config(
       },
     },
     rules: {
-      '@stylistic/object-curly-newline': [
-        'error',
-        { ImportDeclaration: 'never', ExportDeclaration: 'never' },
-      ],
+      'local/packed-named-imports': ['error', { maxLineLength: 150 }],
     },
   },
 );
@@ -91,23 +92,31 @@ continued line with as many names as fit under the line-length budget.
 This is the opposite of Prettier's default multiline import style and is intentional:
 dense import blocks scan faster and diff more cleanly.
 
-**Line-length budget:** pick one per repo and stick to it — **120** in the studio app
-v2 (`apps/studio`), **150** elsewhere unless a project doc says otherwise.
+**Line-length budget: 150.** One number, every repo — for this rule and for
+`@stylistic/max-len` where that is enabled. There is deliberately **no per-repo escape hatch**;
+the previous "pick one per repo" wording is what let claw-calendar pack at 120 while citing
+the studio app v2, a repo it is not.
 
-When a wrap is unavoidable, use the **hanging form**: names begin on the `import {` line and
-continue on 2-space-indented lines. **No trailing comma** — the closing brace shares the last
-line, so one would read `Undo2, } from "…"`.
+When a wrap is unavoidable, use the **brace-newline form**: `{` ends the `import` line, names
+follow on 2-space-indented lines packed as densely as the budget allows, and `} from "…";`
+closes on its own line. **Keep the trailing comma** — the closing brace sits on its own line,
+so it reads cleanly.
+
+Where the names have a natural grouping, put each group on its own line. That is the whole
+reason this form wins: a line can carry a related set.
 
 ```ts
 // GOOD — single line when it fits
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home } from "lucide-react";
 
-// GOOD — wrapped in the hanging form, names packed
-import { Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home, LayoutGrid, Settings,
-  Clapperboard, ShieldCheck, Building2, Undo2 } from "lucide-react";
+// GOOD — brace-newline, packed, grouped by meaning
+import {
+  Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home,
+  LayoutGrid, Settings, Clapperboard, ShieldCheck, Building2, Undo2,
+} from "lucide-react";
 
-// BAD — gratuitous one-name-per-line (Prettier-style)
+// BAD — gratuitous one-name-per-line (Prettier-style). The only form the rule flags.
 import {
   useCallback,
   useEffect,
@@ -115,48 +124,63 @@ import {
   useRef,
 } from "react";
 
-// DISCOURAGED — brace-newline form. Packed, but the break straight after `{`
-// is what object-curly-newline forbids. Not flagged by the custom rule, so
-// existing code is left alone; write new code in the hanging form.
+// TOLERATED — the hanging form. Legal and not flagged, but not preferred: the first
+// line's width is dictated by wherever `import { ` ends, so names cannot be grouped.
+import { Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home, LayoutGrid,
+  Settings, Clapperboard, Undo2 } from "lucide-react";
+```
+
+A real example of the grouping paying off, from
+`studio/src/components/LaunchControl/LaunchControlSheet.tsx` — geometry, knobs, buttons and
+side cells each get a line:
+
+```ts
 import {
-  Aperture, Archive, Boxes, FileTextIcon,
-} from "lucide-react";
+  PAGE, STYLE, mm, COL_CX, COL_W,
+  KNOB_ROW_CY, KNOB, FADER_CX, FADER, FADER_TICK_YS,
+  BTN_BOTTOM, BTN_BOTTOM_CELL_H, BTN_LABEL, BTN_CELL, SIDE_PAIR, SIDE_PAIR_CELL_W,
+  SIDE_QUAD, SIDE_QUAD_CELL_H, SLOT_LABEL, OUTLINE,
+} from '@/lib/launchcontrol/geometry.ts';
 ```
 
-### `object-curly-newline` is what defines the shape
+### `object-curly-newline` is deliberately NOT part of this standard
 
-This is not a "nice to pair with" — it is the rule that makes the hanging form the *only* legal
-wrapped shape, by forbidding the line break straight after `{`:
+It used to be, with `ImportDeclaration: 'never'`. That setting forbids a line break straight
+after `{` — which is precisely the brace-newline form above. Keeping it would make the house
+style unlintable, so it is **removed from the standard entirely. Do not add it back.**
 
-```js
-'@stylistic/object-curly-newline': [
-  'error',
-  { ImportDeclaration: 'never', ExportDeclaration: 'never' },
-],
-```
+Its `ExportDeclaration` half was independently hazardous: the fixer only *deletes* newlines and
+the packing rule covers imports alone, so on a repo with multi-line barrel files it yields
+`export {useFoo,` … `type Bar,}`, and it cannot touch comment-interleaved export blocks at all.
 
-> **`ExportDeclaration` is riskier than it looks.** Its fixer only *deletes* newlines, and the
-> packing rule below covers imports only — so on a repo with multi-line barrel files it produces
-> `export {useFoo,` … `type Bar,}`, and it cannot touch comment-interleaved export blocks at all.
-> Enable it only where exports are already single-line, or omit it and keep `ImportDeclaration`.
-> claw-calendar omits it for exactly this reason.
+**Enforcement:** custom ESLint rule, canonical at
+[`../eslint-rules/packed-named-imports.mjs`](../eslint-rules/packed-named-imports.mjs). Copy
+that file into the consuming repo's `eslint-rules/` and wire it as in the config above.
 
-**Enforcement in app-monorepo:** custom ESLint rule `local/packed-named-imports`
-in `apps/studio/eslint-rules/packed-named-imports.mjs`, enabled for
-`src/components/v2/**/*.{ts,tsx}` via `apps/studio/eslint.config.mjs`. It errors on
-one-specifier-per-line wrapped imports and auto-fixes by repacking **into the hanging form**,
-computing a per-line budget (the first line is shortened by `import { `, the last must also fit
-` } from "…";`). Documented in `apps/studio/AGENTS.md` → *Lint and format*.
-
-It deliberately flags **only** one-name-per-line. Brace-newline imports pass, so adopting this
-rule in an existing repo does not produce a mass reformat.
+The rule flags **only** one-name-per-line, and autofixes by repacking into the brace-newline
+form (collapsing to a single line first if the whole import fits the budget). Imports already
+packed — single-line or brace-newline — are left alone, so adopting it in an existing repo
+produces no mass reformat.
 
 **Adopt in a new repo:**
 
-1. Copy the rule module (or reimplement the same check).
-2. Register it in `eslint.config.mjs` for the TS/TSX trees you care about.
+1. Copy [`../eslint-rules/packed-named-imports.mjs`](../eslint-rules/packed-named-imports.mjs)
+   into the repo's `eslint-rules/`. Copy the file — do not retype it.
+2. Register it in `eslint.config.mjs` for the TS/TSX trees you care about, at
+   `maxLineLength: 150`.
 3. Add the good/bad examples above to that package's `AGENTS.md` or a local
    `.cursor/rules/030-formatting.mdc` so agents and reviewers see the same bar.
+4. Run `npx eslint .` once before committing. The rule reports only
+   one-name-per-line imports, so a clean repo should stay clean; anything it does flag is
+   real.
+
+**Changing the rule:** edit the canonical file, then re-run its fixtures from a repo that has
+`eslint` + `@typescript-eslint/parser` installed, and re-copy downstream:
+
+```sh
+cd ~/Desktop/studio
+node ~/coding-standards/eslint-rules/packed-named-imports.test.mjs
+```
 
 Cursor rule template: [`.cursor/rules/030-formatting.mdc`](../../../.cursor/rules/030-formatting.mdc)
 (relative from this doc — lives at the `docs-hub` repo root).
