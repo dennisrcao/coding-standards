@@ -94,16 +94,18 @@ dense import blocks scan faster and diff more cleanly.
 **Line-length budget:** pick one per repo and stick to it — **120** in the studio app
 v2 (`apps/studio`), **150** elsewhere unless a project doc says otherwise.
 
+When a wrap is unavoidable, use the **hanging form**: names begin on the `import {` line and
+continue on 2-space-indented lines. **No trailing comma** — the closing brace shares the last
+line, so one would read `Undo2, } from "…"`.
+
 ```ts
 // GOOD — single line when it fits
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home } from "lucide-react";
 
-// GOOD — wrapped, but still packed (not one name per line)
-import {
-  Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home, LayoutGrid,
-  Settings, Clapperboard, ShieldCheck, Building2, Undo2,
-} from "lucide-react";
+// GOOD — wrapped in the hanging form, names packed
+import { Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home, LayoutGrid, Settings,
+  Clapperboard, ShieldCheck, Building2, Undo2 } from "lucide-react";
 
 // BAD — gratuitous one-name-per-line (Prettier-style)
 import {
@@ -112,10 +114,19 @@ import {
   useMemo,
   useRef,
 } from "react";
+
+// DISCOURAGED — brace-newline form. Packed, but the break straight after `{`
+// is what object-curly-newline forbids. Not flagged by the custom rule, so
+// existing code is left alone; write new code in the hanging form.
+import {
+  Aperture, Archive, Boxes, FileTextIcon,
+} from "lucide-react";
 ```
 
-**Pair with `@stylistic/object-curly-newline`** so ESLint does not force imports onto
-multiple lines prematurely:
+### `object-curly-newline` is what defines the shape
+
+This is not a "nice to pair with" — it is the rule that makes the hanging form the *only* legal
+wrapped shape, by forbidding the line break straight after `{`:
 
 ```js
 '@stylistic/object-curly-newline': [
@@ -124,11 +135,21 @@ multiple lines prematurely:
 ],
 ```
 
+> **`ExportDeclaration` is riskier than it looks.** Its fixer only *deletes* newlines, and the
+> packing rule below covers imports only — so on a repo with multi-line barrel files it produces
+> `export {useFoo,` … `type Bar,}`, and it cannot touch comment-interleaved export blocks at all.
+> Enable it only where exports are already single-line, or omit it and keep `ImportDeclaration`.
+> claw-calendar omits it for exactly this reason.
+
 **Enforcement in app-monorepo:** custom ESLint rule `local/packed-named-imports`
 in `apps/studio/eslint-rules/packed-named-imports.mjs`, enabled for
 `src/components/v2/**/*.{ts,tsx}` via `apps/studio/eslint.config.mjs`. It errors on
-one-specifier-per-line wrapped imports and auto-fixes by repacking. Documented in
-`apps/studio/AGENTS.md` → *Lint and format*.
+one-specifier-per-line wrapped imports and auto-fixes by repacking **into the hanging form**,
+computing a per-line budget (the first line is shortened by `import { `, the last must also fit
+` } from "…";`). Documented in `apps/studio/AGENTS.md` → *Lint and format*.
+
+It deliberately flags **only** one-name-per-line. Brace-newline imports pass, so adopting this
+rule in an existing repo does not produce a mass reformat.
 
 **Adopt in a new repo:**
 
