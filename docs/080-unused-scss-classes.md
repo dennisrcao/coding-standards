@@ -61,6 +61,10 @@ confirmed `UNUSED` finding and a non-zero exit code — safe to gate a hook or C
 
 ## Script
 
+> **Canonical copy:** [`../scripts/find-unused-scss-classes.mjs`](../scripts/find-unused-scss-classes.mjs).
+> Copy **that file** into a repo — don't paste from the listing below, which is a convenience
+> mirror and will drift. When the script changes, change it there and re-copy downstream.
+
 `scripts/find-unused-scss-classes.mjs` — zero dependencies, Node ≥ 18:
 
 ```js
