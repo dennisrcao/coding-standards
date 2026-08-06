@@ -17,10 +17,30 @@ Acme's studio app carries ~50 hand-rolled `fetchXxxAM()` wrappers, the same
 `useState(data/loading/error)` + `useEffect(cancelled)` quadruple in nearly every screen, and server
 state hand-cached in Zustand behind manual `loadSeq` tokens.
 
-> **Settles a standing contradiction.** `apps/studio/AGENTS.md` has been read both as *"don't
-> introduce react-query"* (ticket p2-458) and as *"TanStack Query is the sanctioned migration
-> target"* (plan `refine-crud-improvements`). The second reading is correct, with a caveat: **don't
-> bolt it onto one feature.** Adopt it with the `queryOptions` factory below, or not at all.
+> **This standard governs *how* to use TanStack Query — not *whether* to adopt it.** Adoption is a
+> per-repo call that needs a real read of that codebase's write path, not a policy handed down here.
+> Acme ran that evaluation ([`projects/app/docs/__tanstack-query-evaluation.md`](../../acme/docs/__tanstack-query-evaluation.md),
+> 2026-08-06) and concluded **not
+> now**: every benefit landed on the read path while every cost landed on the write path, which is
+> where its actual pain is. That is a legitimate answer. What is *not* legitimate is bolting the
+> library onto one feature — adopt it with the `queryOptions` factory below, or not at all.
+
+### Query never owns editable state
+
+There are **three** kinds of state, not two:
+
+| Kind | Owner | Example |
+|---|---|---|
+| **Server cache** | TanStack Query | a projects list you re-fetch and can throw away |
+| **Local document** | Zustand + explicit persistence | shots, picks, fragments — what the user is *editing*, which must survive reload |
+| **Ephemeral UI** | Zustand | modal open, selected tab |
+
+Query owns the first only. A document the user edits is not a cache of the server — it has local
+authority, optimistic writes, and reconciliation rules a cache has no opinion about. Putting it
+behind `useQuery` means a background refetch can silently overwrite unsaved work.
+
+This is why "don't hand-roll the cache in Zustand" (`020-zustand.md`) is **not** an argument against
+a store that owns a document. Acme's `store.ts` is the second row, not the first.
 
 **Upstream source of truth:** TkDodo (TanStack Query maintainer) — <https://tkdodo.eu/blog>, whose
 guidance every rule below is derived from. Where this file and that blog disagree, **the blog wins
@@ -63,6 +83,10 @@ and this file is the bug.**
   overrides at the call site: `useQuery({ ...invoiceOptions(1), select: (i) => i.createdAt })`.
   Custom hooks remain correct when they share **logic** (reading router/context, combining queries) —
   not when they merely share **configuration**.
+  *Note:* the 2020 *Practical React Query* post says to create a custom hook "even if it's only for
+  wrapping one `useQuery` call", and carries no update notice. **The later posts reverse that
+  default** — *The Query Options API* and *Creating Query Abstractions* put `queryOptions()` first.
+  We follow the later guidance.
 - **Server state cached in Zustand** — no `loadSeq` tokens, no manual sequence guards.
 - **A hand-rolled TTL cache or in-flight dedup in front of a query.** Both are built in; two cache
   layers means two things to invalidate.
@@ -169,3 +193,17 @@ offline/`networkMode`, forms, and testing.
 Posts worth reading in full before writing much query code: *Practical React Query*, *Effective React
 Query Keys*, *The Query Options API*, *Mastering Mutations*, and *Automatic Query Invalidation after
 Mutations*.
+
+## Cross-check revisions
+
+- **2026-08-06** — Cross-checked against `projects/app/docs/__tanstack-query-evaluation.md`. All its line-referenced
+  claims verified against app-monorepo-1 (file sizes exact; the StrictMode no-cancellation-guard at
+  `use-all-project-details.ts:60-68` is verbatim). Adopted two corrections: this standard no longer
+  claims the `AGENTS.md` contradiction is settled "in favour of adoption" — adoption is a per-repo
+  call, and Acme's evaluation says not now — and a third state category (**local document**) was
+  added, since Acme's `store.ts` owns edited state, not a cache.
+- **2026-08-06** — Cross-checked against a Cursor (Grok 4.5) critique. Nine corroboration claims
+  verified and left unchanged. Adopted one: *Practical React Query* (2020) recommends a custom hook
+  per query and carries no supersession notice, so the Don't now names it explicitly as superseded by
+  *The Query Options API* / *Creating Query Abstractions*. Rejected the accompanying claim that the
+  rule contradicted upstream — the bullet already permitted logic-sharing hooks.
