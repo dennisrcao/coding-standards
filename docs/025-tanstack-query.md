@@ -8,9 +8,11 @@ alwaysApply: false
 
 # TanStack Query (server state)
 
-**TanStack Query is the sanctioned server-state layer for HTTP fetching.** Client state (UI flags,
-selections, session handles) stays in Zustand — see `020-zustand.md`. Repos on a *reactive* backend
-(Convex, Firebase) use that backend's subscription hooks instead; don't stack a query library on top.
+**TanStack Query is the sanctioned server-state layer for HTTP fetching — in repos that adopt one.**
+It is the only sanctioned option, not a mandatory one; see the adoption note below. Client state (UI
+flags, selections, session handles) stays in Zustand — see `020-zustand.md`. Repos on a *reactive*
+backend (Convex, Firebase) use that backend's subscription hooks instead; don't stack a query library
+on top.
 
 This standard exists because the alternative is already in the codebase and it is expensive:
 Acme's studio app carries ~50 hand-rolled `fetchXxxAM()` wrappers, the same
@@ -27,24 +29,24 @@ state hand-cached in Zustand behind manual `loadSeq` tokens.
 
 ### Query never owns editable state
 
-There are **three** kinds of state, not two:
+There are **three** kinds of state, not two. **The table lives in `020-zustand.md` → *State
+ownership*, and is not restated here** — one copy, or the two drift. Query owns exactly one of the
+three: **server cache**.
 
-| Kind | Owner | Example |
-|---|---|---|
-| **Server cache** | TanStack Query | a projects list you re-fetch and can throw away |
-| **Local document** | Zustand + explicit persistence | shots, picks, fragments — what the user is *editing*, which must survive reload |
-| **Ephemeral UI** | Zustand | modal open, selected tab |
-
-Query owns the first only. A document the user edits is not a cache of the server — it has local
-authority, optimistic writes, and reconciliation rules a cache has no opinion about. Putting it
-behind `useQuery` means a background refetch can silently overwrite unsaved work.
+A document the user edits is not a cache of the server — it has local authority, optimistic writes,
+and reconciliation rules a cache has no opinion about. Putting it behind `useQuery` means a background
+refetch can silently overwrite unsaved work.
 
 This is why "don't hand-roll the cache in Zustand" (`020-zustand.md`) is **not** an argument against
-a store that owns a document. Acme's `store.ts` is the second row, not the first.
+a store that owns a document. Acme's `store.ts` is the **local document** kind, not the server cache.
 
 **Upstream source of truth:** TkDodo (TanStack Query maintainer) — <https://tkdodo.eu/blog>, whose
 guidance every rule below is derived from. Where this file and that blog disagree, **the blog wins
-and this file is the bug.**
+and this file is the bug** — with one qualifier: the blog spans years and **later posts supersede
+earlier ones**, often without an update notice on the earlier post. The custom-hook rule below is the
+live example. Check the date before treating a post as current. (Unlike `020-zustand.md`, which cites
+a single 2022 post and therefore needs a full three-way precedence rule, this file tracks a maintained
+blog — so "the blog wins" holds, once you read the right post.)
 
 ## Do
 
@@ -202,6 +204,17 @@ Mutations*.
   claims the `AGENTS.md` contradiction is settled "in favour of adoption" — adoption is a per-repo
   call, and Acme's evaluation says not now — and a third state category (**local document**) was
   added, since Acme's `store.ts` owns edited state, not a cache.
+- **2026-08-06** — Cross-checked against a two-agent panel critique alongside `020-zustand.md`. The
+  duplicated three-kinds-of-state table was removed in favour of a link to `020` (the canonical copy),
+  per `README.md` "cross-link rather than restate" — the two copies had already drifted in three cells,
+  including dropping reactive backends as a legitimate server-cache owner. `020`'s unconditional
+  "Fetching over HTTP → TanStack Query" was made conditional on adoption, so it no longer contradicts
+  this file's *how, not whether* framing. Rejected: narrowing this file's globs away from `*-store.ts`
+  (the "server state cached in Zustand" rule targets exactly those files). Two follow-on fixes for
+  internal consistency: the opening line no longer reads as a flat mandate, and the precedence clause
+  now says later posts supersede earlier ones — which the custom-hook rule already relied on
+  implicitly. Still open: this file sets no house `staleTime` floor number, while the debounce rule
+  right below it does.
 - **2026-08-06** — Cross-checked against a Cursor (Grok 4.5) critique. Nine corroboration claims
   verified and left unchanged. Adopted one: *Practical React Query* (2020) recommends a custom hook
   per query and carries no supersession notice, so the Don't now names it explicitly as superseded by

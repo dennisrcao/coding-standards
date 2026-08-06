@@ -1,5 +1,5 @@
 ```yaml
-description: Zustand store pattern — selector-first, actions namespace, no middleware, no whole-store subscribe, useShallow for object selectors
+description: Zustand store pattern — selector-first, actions namespace, no persist middleware, no whole-store subscribe, useShallow for object selectors
 globs:
   - "apps/*/src/stores/**/*.{ts,tsx}"
   - "apps/*/src/lib/*-store.ts"
@@ -13,8 +13,14 @@ alwaysApply: false
 Applies wherever stores live — `src/stores/`, or `src/lib/*-store.ts`. **Zustand holds client state
 only**; see *State ownership* below for the boundary.
 
-**Upstream source of truth:** TkDodo's [*Working with Zustand*](https://tkdodo.eu/blog/working-with-zustand).
-Where this file and that post disagree, the post wins and this file is the bug.
+**Upstream source of truth:** TkDodo's [*Working with Zustand*](https://tkdodo.eu/blog/working-with-zustand)
+(2022-11-20). Precedence is **three-way** — "the post wins" is only true of the first third of this file:
+
+| This file is… | Precedence |
+|---|---|
+| **derived from the post** — private `create()`, `actions` namespace, atomic selectors, events-not-setters, one store per domain, no whole-store subscribe | the post wins; a disagreement here is a bug in *this* file |
+| **deliberately narrower than the post** — the middleware position below | the post is permissive (*"middlewares … are totally optional"*, immer allowed outright). We narrow on purpose; each narrowing states its own reason and does not defer upward |
+| **downstream of the post** — v5 `useShallow`, staleness guards, persistence, state ownership | upstream is silent or **stale**. The post predates Zustand v5 and still recommends the `zustand/shallow` second argument that v5 **removed** — following it there ships broken code |
 
 ## Do
 
@@ -39,9 +45,15 @@ Where this file and that post disagree, the post wins and this file is the bug.
 ## Don't
 
 - **`useStore()` with no argument, or destructuring the whole store.** Both subscribe to every field.
-- **Middleware — `persist`, `immer`, `devtools`, `subscribeWithSelector`.** The manual patterns below
-  are deliberate: they guard against blob URLs that don't survive a refresh, partially-written state,
-  and quota errors that `persist` swallows. If you think you need middleware, say why in the PR.
+- **`persist` middleware — hard ban.** The manual pattern below is deliberate: it guards against blob
+  URLs that don't survive a refresh, partially-written state, and quota errors `persist` swallows.
+- **`immer`, `devtools`, `subscribeWithSelector` — prefer the plain shape; name your reason in the
+  PR.** This is a *house narrowing, not upstream doctrine* — the post calls middlewares "totally
+  optional" and permits immer outright. The reason is uniformity: every store in every repo reads as
+  the canonical shape at the bottom of this file, with no per-repo middleware stack to learn. That is
+  a weaker reason than `persist`'s, so the bar for an exception is correspondingly lower —
+  `devtools` in particular carries no production cost, and "I was debugging a state bug" is a
+  sufficient PR note.
 - **`getState()` inside a render body, `useMemo`, or as a `useEffect` dependency.** It captures a
   frozen snapshot and won't update when state changes. Event handlers, modules, and async callbacks
   only.
@@ -93,7 +105,10 @@ being enough, that's the signal to move that data to a real server-state layer**
 
 - **Persist on change with a top-level subscriber**, not inside setters — a `persistOnChange(store,
   select, persist)` helper that diffs one slice by identity. This decouples persistence from every
-  mutation site.
+  mutation site. Yes — this is `subscribeWithSelector`'s job, hand-rolled. Deliberate: the helper is
+  ordinary repo code, so the exclusion list and the try/catch below sit *next to* it and get read in
+  review, rather than disappearing into middleware config. Trading four lines for that is the whole
+  of the argument; see the middleware bullet above.
 - **Wrap every `localStorage` call in try/catch and log the failure**:
   `console.warn("[persist] failed to write app:foo", err)`. **Bare `catch {}` is forbidden** — quota
   and serialization failures must be visible.
@@ -102,7 +117,8 @@ being enough, that's the signal to move that data to a real server-state layer**
 
 ## State ownership
 
-There are **three** kinds of state. Zustand owns two of them.
+There are **three** kinds of state. Zustand owns two of them. **This table is the canonical copy** —
+`025-tanstack-query.md` links here rather than restating it.
 
 | Kind | Owner | Example |
 |---|---|---|
@@ -110,7 +126,9 @@ There are **three** kinds of state. Zustand owns two of them.
 | **Local document** | **Zustand** + explicit persistence | shots, picks, fragments — what the user is *editing*, which must survive reload |
 | **Ephemeral UI** | **Zustand** | modal open, selected tab, session handles |
 
-- **Fetching over HTTP** → TanStack Query. See `025-tanstack-query.md`.
+- **Fetching over HTTP** → TanStack Query, **in a repo that has adopted it**. Adoption is a per-repo
+  call, not a policy handed down here — see `025-tanstack-query.md`. Until a repo makes that call, a
+  store-held fetch is tolerated as debt (below), not a violation.
 - **Reactive backend** (Convex, Firebase, Replicache) → its subscription hooks *are* the server-state
   layer. Don't stack a query library on top, and don't mirror its data into a store. `~/Desktop/studio`
   is the worked example: Convex `useQuery`/`useMutation`, no TanStack Query, no in-memory mirror.
@@ -160,3 +178,25 @@ export const useName = () => useMyStore((s) => s.name);
 export const useMyActions = () => useMyStore((s) => s.actions);   // stable; never re-renders
 export const getMyStore = () => useMyStore.getState();            // non-React reads only
 ```
+
+## Cross-check revisions
+
+- **2026-08-06** — Cross-checked against the declared upstream (TkDodo, *Working with Zustand*,
+  2022-11-20) and against a two-agent critique of this file and `025`. Both attributed quotes verified
+  verbatim. Four corrections adopted:
+  - **Precedence is now three-way.** The old single line ("the post wins and this file is the bug")
+    was wrong twice: the post predates Zustand v5 and still recommends the `zustand/shallow` second
+    argument v5 removed, so it would have overridden the correct v5 section; and it gave no vocabulary
+    for a deliberate house narrowing, which made the middleware ban read as a self-declared bug.
+  - **Middleware split.** `persist` keeps its hard ban and its stated reason. `immer` / `devtools` /
+    `subscribeWithSelector` are demoted to a preference and now carry their own (weaker, honest)
+    reason — the post permits all three, so the old blanket ban had no upstream basis.
+  - **The `subscribeWithSelector` circularity is named.** The Persistence section prescribes exactly
+    what that middleware does; it now says so and says why the hand-rolled version is preferred.
+  - **"Fetching over HTTP → TanStack Query" is now conditional on adoption**, matching `025`, which
+    states adoption is a per-repo call. The unconditional form contradicted it.
+  - The state-ownership table is marked canonical; `025`'s duplicate copy (which had already drifted
+    in three cells) was replaced with a link, per `README.md` "cross-link rather than restate".
+  - *Rejected:* narrowing `025`'s globs to exclude `*-store.ts` — that would strip "no server state
+    cached in Zustand" from the exact files it targets, and globs are rewritten per repo on adoption
+    anyway. *Deferred:* a house `staleTime` floor number in `025` — needs a real call, not a default.
