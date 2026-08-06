@@ -26,7 +26,20 @@ If you add `apps/web/src/stores/`, follow the selector-first pattern below.
 
 ## Server vs client state
 
-Use **TanStack Query** (or equivalent) for **server/cache** state when present. Use **Zustand** for **client** state (UI, session handles, ephemeral flags).
+Use a **dedicated server-state layer** for **server/cache** state. Use **Zustand** for **client**
+state (UI, session handles, ephemeral flags).
+
+- **Fetching over HTTP** → **TanStack Query**. See `025-tanstack-query.md` for the `queryOptions`
+  factory, `staleTime`, and invalidation rules.
+- **Reactive backend** (Convex, Firebase, Replicache) → its own subscription hooks *are* the
+  server-state layer. Don't add a query library on top, and don't mirror its data into a store.
+  `~/Desktop/studio` is the worked example: Convex `useQuery`/`useMutation`, no TanStack Query,
+  no in-memory mirror.
+
+**Either way, don't hand-roll the cache in Zustand.** No `loadSeq` tokens, no manual sequence
+guards, no TTL maps in front of a fetch — that is what `025` exists to replace. Storing a fetched
+value in a store while a repo still has no server-state layer is tolerated *as debt*, not as the
+pattern; see `025` → *Migrating a hand-rolled fetch*.
 
 ## Canonical shape
 

@@ -1,0 +1,171 @@
+```yaml
+description: TanStack Query v5 — queryOptions factories, staleTime tuning, broad invalidation, thin queryFns; never hand-roll fetch/loading/error
+globs:
+  - "apps/*/src/**/*.{ts,tsx}"
+  - "apps/*/app/**/*.{ts,tsx}"
+alwaysApply: false
+```
+
+# TanStack Query (server state)
+
+**TanStack Query is the sanctioned server-state layer for HTTP fetching.** Client state (UI flags,
+selections, session handles) stays in Zustand — see `020-zustand.md`. Repos on a *reactive* backend
+(Convex, Firebase) use that backend's subscription hooks instead; don't stack a query library on top.
+
+This standard exists because the alternative is already in the codebase and it is expensive:
+Acme's studio app carries ~50 hand-rolled `fetchXxxAM()` wrappers, the same
+`useState(data/loading/error)` + `useEffect(cancelled)` quadruple in nearly every screen, and server
+state hand-cached in Zustand behind manual `loadSeq` tokens.
+
+> **Settles a standing contradiction.** `apps/studio/AGENTS.md` has been read both as *"don't
+> introduce react-query"* (ticket p2-458) and as *"TanStack Query is the sanctioned migration
+> target"* (plan `refine-crud-improvements`). The second reading is correct, with a caveat: **don't
+> bolt it onto one feature.** Adopt it with the `queryOptions` factory below, or not at all.
+
+**Upstream source of truth:** TkDodo (TanStack Query maintainer) — <https://tkdodo.eu/blog>, whose
+guidance every rule below is derived from. Where this file and that blog disagree, **the blog wins
+and this file is the bug.**
+
+## Do
+
+- **Export a `queryOptions()` factory per resource** — not a bare key factory, and not a custom hook
+  per query. `queryOptions()` is the identity function at runtime but it (a) catches typos that a
+  plain object silently swallows, (b) tags the key with its return type so
+  `queryClient.getQueryData(opts.queryKey)` is typed with no manual generics, and (c) works in route
+  loaders, prefetching, event handlers, and `useQueries` — everywhere hooks can't go.
+- **Always use the object form** — `useQuery({ queryKey, queryFn })`, never the v4 positional form.
+- **Set a global `staleTime` floor** in `QueryClient.defaultOptions`, then override per key-scope
+  with `setQueryDefaults` or on the individual `queryOptions`. `staleTime` is the single most
+  important knob; almost nobody needs to touch `gcTime`.
+- **`placeholderData: (previous) => previous`** on paginated or filtered lists, or the list blanks
+  on every page change.
+- **Search is a `useQuery` with the term in the key** — never a `useMutation`. Re-searching a prior
+  term becomes a cache hit.
+- **Debounce the value feeding the key** (300 ms house default), not the fetch. Debouncing inside
+  the `queryFn` still creates a cache entry per keystroke.
+- **Every scope belongs in the key** — tenant, org, workspace, selected-coach. A key missing its
+  scope serves one tenant's cached data to another after a switch. Correctness, not performance.
+- **Gate with `enabled`** (`!authLoading`, `!!id`) — never conditional hooks.
+- **Keep `queryFn` to three lines**: pure param builder → typed API client → return. Both halves are
+  then testable without React.
+- **Invalidate broadly by default** (see *Invalidation*).
+
+## Don't
+
+- **`useState(data/loading/error)` + `useEffect(cancelled)`.** Writing a cancellation flag means
+  reimplementing the library.
+- **Disable `refetchOnMount` / `refetchOnWindowFocus` to "reduce requests."** This is the most common
+  misuse — it turns off the synchronization mechanism and you ship stale UIs. **Raise `staleTime`
+  instead**; it cuts requests while keeping the safety net.
+- **Wrap every query in a custom hook.** The escalation is predictable and ends in broken types:
+  `useThing(id)` → `useThing(id, staleTime?)` → `useThing(id, options?: Partial<UseQueryOptions>)`,
+  at which point `data` becomes `unknown`. *"The best abstractions are not configurable."* Spread
+  overrides at the call site: `useQuery({ ...invoiceOptions(1), select: (i) => i.createdAt })`.
+  Custom hooks remain correct when they share **logic** (reading router/context, combining queries) —
+  not when they merely share **configuration**.
+- **Server state cached in Zustand** — no `loadSeq` tokens, no manual sequence guards.
+- **A hand-rolled TTL cache or in-flight dedup in front of a query.** Both are built in; two cache
+  layers means two things to invalidate.
+- **Prop-drill query data to avoid "duplicate fetches."** Any number of components may call the same
+  query; they dedupe into one request and one cache entry. Prop-drilling to "fix" this is solving a
+  problem the library already solved.
+- **Inline closures in `queryFn` whose dependencies aren't all in the key.** Nothing warns you when
+  they drift; you get stale cache reads that are miserable to debug.
+- **Fat `queryFn`s.** A hundred lines of conditional `queryParams.append(...)` can't be tested, reused,
+  or read.
+- **One hook straddling two endpoints with different response shapes.** If empty query hits `/things`
+  and non-empty hits `/things/search`, and only one returns `total`, the hook is hiding a backend
+  inconsistency — fix the API or ship two hooks.
+- **Deprecated-param mapping inside a hook.** That belongs in the API client.
+
+## Canonical shape
+
+```typescript
+// api/exercises/queries.ts — one factory per resource. Key helpers stay plain arrays;
+// leaf entries return queryOptions() so they carry queryFn + defaults + DataTag typing.
+import { queryOptions } from '@tanstack/react-query';
+
+export const exerciseQueries = {
+  all: () => ['exercises'] as const,
+  lists: () => [...exerciseQueries.all(), 'list'] as const,
+  search: (params: SearchParams, coachId: string) =>
+    queryOptions({
+      queryKey: [...exerciseQueries.lists(), params, coachId] as const,
+      queryFn: () => fetchJson<SearchResponse>('/exercises/search', buildSearchParams(params)),
+      placeholderData: (previous) => previous,  // no blank frame between pages
+      staleTime: 2 * 60 * 1000,                 // results churn as the library is edited
+    }),
+  detail: (id: string) =>
+    queryOptions({
+      queryKey: [...exerciseQueries.all(), 'detail', id] as const,
+      queryFn: () => fetchJson<Exercise>(`/exercises/${id}`),
+    }),
+};
+
+// api/exercises/params.ts — pure, unit-testable, no React
+export function buildSearchParams(p: SearchParams): URLSearchParams { /* … */ }
+```
+
+```typescript
+// Call site. Overrides are spread, not baked into a configurable wrapper.
+const { data, isFetching } = useQuery({
+  ...exerciseQueries.search({ query: debouncedQuery, ...filters }, coachId),
+  enabled: !authLoading,
+});
+
+// The same object works everywhere hooks don't:
+queryClient.prefetchQuery(exerciseQueries.detail(id));
+const cached = queryClient.getQueryData(exerciseQueries.detail(id).queryKey); // typed as Exercise
+```
+
+A thin custom hook is still justified when it reads context the call site shouldn't have to —
+`useSelectedCoachId()`, auth state — but it should wrap the factory, never replace it.
+
+## Invalidation
+
+**Invalidation is not "refetch everything."** It refetches *active* matching queries and marks the
+rest stale for later, so broad invalidation is far cheaper than it sounds.
+
+**Default to global**, which removes the entire "forgot to invalidate X" bug class:
+
+```typescript
+new QueryClient({
+  mutationCache: new MutationCache({
+    onSuccess: () => queryClient.invalidateQueries(),
+  }),
+});
+```
+
+Fine-grained mutation→query maps are the tempting anti-pattern: every new related resource means
+auditing every mutation callback. Reach for scoping (`mutationKey`, or declarative `meta.invalidates`)
+only when you have a measured reason.
+
+⚠️ `invalidateQueries` defaults to `cancelRefetch: true`, which cancels in-flight requests. Pass
+`false` to piggyback on a refetch already running.
+
+## Seeding the cache
+
+`placeholderData` and `initialData` are not interchangeable. `initialData` is **written to the cache
+and treated as fresh** — with a `staleTime` set, it can suppress the fetch entirely. `placeholderData`
+is explicitly *not* cached and never suppresses a fetch. Seeding a detail view from a list row that
+lacks fields the detail endpoint returns? Use `placeholderData`.
+
+## Migrating a hand-rolled fetch
+
+1. Move URL building into a pure `buildXxxParams()`; write its unit test first — it's where quiet
+   bugs accumulate.
+2. Add the `queryOptions()` factory for the resource.
+3. Replace the `useState`/`useEffect` quadruple with `useQuery`. Delete the cancellation flag.
+4. Delete any TTL cache or `loadSeq` guard in front of it — never keep both.
+5. Confirm the scope (tenant/org/coach) is in the key before shipping.
+
+## Further reading
+
+<https://tkdodo.eu/blog> — the source for everything above. This standard deliberately covers only the
+rules that keep coming up in our repos. Go upstream for `select` and data transformation, render
+optimization, error handling, optimistic updates, Suspense/React 19, infinite queries, WebSockets,
+offline/`networkMode`, forms, and testing.
+
+Posts worth reading in full before writing much query code: *Practical React Query*, *Effective React
+Query Keys*, *The Query Options API*, *Mastering Mutations*, and *Automatic Query Invalidation after
+Mutations*.
