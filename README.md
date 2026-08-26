@@ -64,6 +64,7 @@ three `@`-imported at the bottom of its `CLAUDE.md`.
 | Path | What it is |
 |------|-----------|
 | `docs/` | the standards — canonical, portable |
+| `docs/090-slash-commands.md` | **the one exception** — a reference copy of the personal `~/.claude/commands/*.md`, which live outside git. Not a standard to copy into a repo; a restore path if a machine is wiped |
 | `eslint-rules/` | custom rules the standards depend on (`packed-named-imports.mjs` + test) |
 | `scripts/` | tooling a standard calls for (`find-unused-scss-classes.mjs`) |
 
