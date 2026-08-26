@@ -32,13 +32,20 @@ alwaysApply: false
 Claude-side roster; this one is the **two-environment** view.
 
 Both agents are used on the same repos, on the same day, often on the same branch. They read
-different folders and different file formats, and **nothing keeps them in sync** — there is no
-shared source, no linter, no test.
+different folders and different file formats, and the three commands that exist on both sides
+**cannot be collapsed into one file** — each has to name the other agent's binary.
 
-None of these files are in git on any machine, so like `090` this doc is also the **restore path**.
-It does not affect whether the commands work: they fire in `studio`, `acme` and every other
-workspace because the command *files* live under `~/.claude/` and `~/.cursor/`, which are
-machine-global and outside every repo. Moving or deleting this page would break nothing.
+**The files themselves live in this repo**, under `projects/coding-standards/commands/`.
+`~/.claude/commands/` and `~/.cursor/{{commands,skills}}/` are symlinks into it, so editing a command
+from either agent edits the tracked file, and `git pull` carries it to every Mac. A wiped machine is
+restored by cloning `docs-hub` to the Desktop and running:
+
+```sh
+bash projects/coding-standards/scripts/link-slash-commands.sh
+```
+
+That makes **this page a generated view, not the backup** — it used to be the restore path, back
+when nothing was in git. Deleting it would still break nothing; deleting `commands/` now would.
 
 ## The roster, side by side
 
@@ -95,18 +102,21 @@ Two consequences worth internalising:
 
 - **A Cursor command starts colder.** No `git status`, no branch, no PR list pre-loaded. Anything a
   Claude command gets for free in its frontmatter, a Cursor command must instruct the model to go
-  fetch — which is why both Cursor commands here open by telling it to `cd` into the right clone
-  rather than resolving the clone for it.
+  fetch — which is why both Cursor commands here open by pinning the clone in prose rather than
+  resolving it: `/ask` hands it a literal `cd "<the clone under review>"`, and `/CROSSCHECK`
+  opens with *"state the clone and branch in one line … and run every command from there."*
 - **`allowed-tools` has no Cursor equivalent.** A Cursor command cannot be sandboxed by its own
   file. The safety has to be written as an instruction (`--permission-mode plan`, "never use
   `--dangerously-skip-permissions`") and it is honoured by persuasion, not enforcement.
 
 ## `/ship` is the pattern to copy
 
-`~/.cursor/commands/ship.md` is a **symlink** to `~/.claude/commands/ship.md`:
+Every command here is now a symlink into `commands/`, but `/ship` is the one where **both agents
+point at the same file**:
 
 ```sh
-ln -s ~/.claude/commands/ship.md ~/.cursor/commands/ship.md
+ln -s "$REPO/commands/claude/ship.md" ~/.claude/commands/ship.md
+ln -s "$REPO/commands/claude/ship.md" ~/.cursor/commands/ship.md
 ```
 
 One file, both agents, cannot drift. It works because `/ship` carries no `$ARGUMENTS`
@@ -175,14 +185,22 @@ Install: save as `~/.cursor/commands/CROSSCHECK.md`.
 
 ## Keeping this file honest
 
-There is no automation behind any of this. When a command on either side is edited, the copy here
-goes stale silently. This page is generated from the live files — regenerate it rather than
-hand-patching a block:
+Nothing regenerates this page on its own. Edit a command and the block below goes stale silently —
+so regenerate rather than hand-patching a block:
 
 ```sh
 python3 projects/coding-standards/scripts/build-slash-command-doc.py   # re-reads all six files, rewrites this doc
-ls ~/.claude/commands/ ~/.cursor/commands/ ~/.cursor/skills/
+bash    projects/coding-standards/scripts/link-slash-commands.sh       # re-point a machine at the repo (idempotent)
+ls -l ~/.claude/commands/ ~/.claude/skills/ ~/.cursor/commands/ ~/.cursor/skills/
 ```
+
+Anything in those folders that is **not** a symlink into `commands/` is untracked and will not
+survive a wipe — that `ls -l` is the audit.
+
+Two personal Cursor skills are shared with Claude the old way — `~/.claude/skills/app-staging-data`
+and `~/.claude/skills/app-staging-lambda-deploy` are symlinks to the `~/.cursor/skills/` copies.
+One file each, so they cannot drift between agents, but **they are not in this repo** (they carry a
+client's staging infra: Secrets Manager ids, AWS account, RDS paths) and so are not backed up.
 
 `~/.cursor/skills-cursor/` is **Cursor's own shipped skills** (`review`, `loop`, `create-rule`, …),
 not personal ones. Nothing there needs mirroring; it comes back with the install.
