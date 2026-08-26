@@ -55,6 +55,14 @@ link "claude/ship.md"           "$HOME/.cursor/commands/ship.md"
 # Cursor — skills use a folder plus SKILL.md, and the name comes from the frontmatter
 link "cursor/close-out/SKILL.md" "$HOME/.cursor/skills/close-out/SKILL.md"
 
+# Shared skills — one tracked file, both agents point straight at it (no agent-to-agent chain)
+for s in app-staging-data app-staging-lambda-deploy; do
+  # an older setup made ~/.claude/skills/<name> a symlink to the ~/.cursor copy; replace it with a real dir
+  [ -L "$HOME/.claude/skills/$s" ] && rm -f "$HOME/.claude/skills/$s"
+  link "shared/$s/SKILL.md" "$HOME/.claude/skills/$s/SKILL.md"
+  link "shared/$s/SKILL.md" "$HOME/.cursor/skills/$s/SKILL.md"
+done
+
 echo "linked $linked, already correct $skipped, backed up $backed_up"
 echo
 echo "Verify:"

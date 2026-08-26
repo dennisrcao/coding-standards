@@ -777,10 +777,10 @@ ls -l ~/.claude/commands/ ~/.claude/skills/ ~/.cursor/commands/ ~/.cursor/skills
 Anything in those folders that is **not** a symlink into `commands/` is untracked and will not
 survive a wipe — that `ls -l` is the audit.
 
-Two personal Cursor skills are shared with Claude the old way — `~/.claude/skills/app-staging-data`
-and `~/.claude/skills/app-staging-lambda-deploy` are symlinks to the `~/.cursor/skills/` copies.
-One file each, so they cannot drift between agents, but **they are not in this repo** (they carry a
-client's staging infra: Secrets Manager ids, AWS account, RDS paths) and so are not backed up.
+Two personal skills are shared the same way, from `commands/shared/`: `app-staging-data` and
+`app-staging-lambda-deploy`. Both agents symlink straight at the tracked file — no agent-to-agent
+chain — so one file serves Claude and Cursor and cannot drift. They hold Acme staging runbooks
+(Secrets Manager *ids*, AWS profile, RDS paths — no credentials); this repo is private.
 
 `~/.cursor/skills-cursor/` is **Cursor's own shipped skills** (`review`, `loop`, `create-rule`, …),
 not personal ones. Nothing there needs mirroring; it comes back with the install.
