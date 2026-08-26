@@ -13,6 +13,11 @@ which is why this doc exists: **if a machine is wiped, this file is the restore 
 A file named `foo.md` in that folder becomes `/foo`. Claude Code also surfaces it in the skills
 list, so it can fire on intent, not just on the typed slash.
 
+**Cursor has its own copy of some of these**, in a different folder and a different format — and
+`/close-out` means something *entirely different* over there. See
+[091-slash-commands-claude-vs-cursor.md](091-slash-commands-claude-vs-cursor.md) for the two-agent
+view and the full source of `/close-out` and `/ask` on both sides.
+
 ## Do
 
 - **Keep them repo-agnostic.** A global command resolves the repo it was run in from `pwd` /
@@ -72,7 +77,7 @@ Install: save as `~/.claude/commands/docs-update.md`.
 
 ````markdown
 ---
-description: Sweep this project's docs-hub docs/development/ — verify each plan against the real repo, strike what landed, archive what's done, delete what's dangling, and refresh the section READMEs to the house style.
+description: Sweep this project's docs-hub docs/development/ — verify each plan against the real repo, strike what landed, archive what's done, delete what's dangling, and flatten unearned section folders.
 argument-hint: "[optional: project name, section, or a single doc path — e.g. 'design-styles', 'Museum', 'skip archiving']"
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(pwd), Bash(ls:*), Bash(cat:*), Bash(sed:*), Bash(find:*), Bash(rg:*), Bash(grep:*), Bash(date), Bash(basename:*), Bash(head:*), Bash(tail:*), Bash(wc:*), Bash(mv:*), Bash(rm:*), Read, Grep, Glob, Edit, Write
 ---
@@ -97,7 +102,7 @@ Extra instruction from me: $ARGUMENTS
 # /docs-update
 
 Docs rot in a specific direction: a plan describes work that shipped three days ago as if it
-were still pending, a section README lists a doc that has since been archived, and a folder
+were still pending, a README lists a doc that has since been archived, and a folder
 quietly becomes a junk drawer. **The next agent reads that and acts on it.** This command's
 job is to make `projects/<project>/docs/development/` tell the truth about the repo as it
 exists right now.
@@ -146,7 +151,8 @@ Read these fresh every run — they are the source of truth and they change:
 - `docs-hub/AGENTS.md` — where plans live, what every plan must carry
 - `docs-hub/.cursor/rules/040-plan-lifecycle.mdc` — strikethrough → `✅_` → archive
 - `docs-hub/projects/CONVENTIONS.md` — **only if** this sweep touches `diagrams/`
-- The target project's `docs/archive/README.md` and each `docs/development/<Section>/README.md`
+- The target project's `docs/archive/README.md`, its `docs/overview.md`, and any
+  `docs/development/<Folder>/README.md` that still exists
 
 If a rule in those files contradicts anything below, **the hub's files win** — and tell me which
 line disagreed, so the command can be corrected.
@@ -155,7 +161,7 @@ line disagreed, so the command can be corrected.
 
 Enumerate the tree:
 
-- `docs/development/<Section>/` — every `.md`, its `**Status:**` line (that, not the filename, is
+- `docs/development/` (loose docs first, then any subfolder) — every `.md`, its `**Status:**` line (that, not the filename, is
   what the sidebar badges read — `api/_lib/doc-state.js`), any legacy `__`/`✅_` prefix, its
   mtime, and its last commit (`git log -1 --format='%ad %s' --date=short -- <path>`)
 - `docs/archive/` — what is already parked there
@@ -195,17 +201,30 @@ Sort every doc into exactly one bucket, then **show me the table and wait**:
 |---|---|---|
 | **Archive** | Whole plan implemented **and** its done-gate confirmed merged | `foo.md` → `✅_foo.md`, `git mv` into `projects/<project>/docs/archive/` |
 | **Delete** | Superseded, duplicated, or dangling — describes a design that was abandoned or replaced | `git rm`. Do **not** archive it; archive is for finished work, not dead work |
-| **Keep** | Anything with an open item | Stays in `development/<Section>/` |
+| **Keep** | Anything with an open item | Stays in `development/` |
 | **Rename** | Filename does not say what the doc accomplishes, still carries a legacy `__` prefix or a date, or a `✅_` is sitting in Development | Rename to `<what-it-accomplishes>.md` (no prefix, no date) / move the `✅_` to archive |
 
 Acme is the exception: its tickets archive to `projects/app/docs/__MVP2/z_Archived/`.
 
-## Step 6 — Fix the section READMEs
+## Step 6 — Flatten unearned folders, then fix the READMEs that survive
 
-Every `docs/development/<Section>/` **must** have a `README.md`, because without one the folder
-becomes a junk drawer inside two weeks. Create or repair each to the house shape:
+**Development is flat by default** (`AGENTS.md` §2). A subfolder is earned only when one topic is
+past roughly five docs that genuinely read as one workstream — acme's `__MVP2/` qualifies; a
+folder holding one or two docs does not.
 
-1. **A one-or-two-line statement of the section's subject** — what the folder is *about*, ideally
+This is not cosmetic. The lane is sorted by how much each doc still demands of you (`sortByDemand`,
+`sidebar-sections.ts`): `proposal` 0, `active` 1, **folder 2**, shipped-with-leftovers 2.5,
+`shipped` 3, `reference` 5. A folder has no status of its own, so it **hides its docs' badges from
+the sort** — an untouched proposal inside one sinks below a loose doc that shipped weeks ago.
+
+So: propose flattening any folder under the threshold (`git mv` the docs up, delete the folder
+README), and say what the README said that is worth keeping. Routing rules — *"measured geometry
+lives in the app repo, not here"* — move to the project's `docs/overview.md`, which is Reference and
+is where a reader looks for them anyway. Folder moves are `git mv`; **ask first**, like archiving.
+
+For a folder that IS earned, create or repair its `README.md` to the house shape:
+
+1. **A one-or-two-line statement of the folder's subject** — what it is *about*, ideally
    naming the split that made it exist.
 2. **The doc table**, one row per doc in the folder, links relative:
 
@@ -220,7 +239,7 @@ becomes a junk drawer inside two weeks. Create or repair each to the house shape
    a doc. Make it specific ("**Active — prototype in the museum.** Later tweaks uncommitted"),
    never just "In progress".
 3. **`## What belongs here`** and **`## What does not`** — the second half is load-bearing, and
-   it should *point somewhere* (`→ ../../archive/`, `→ that style's own section`), not just refuse.
+   it should *point somewhere* (`→ ../../archive/`, `→ the app repo's own docs/`), not just refuse.
 4. Add a `## Convention` block only where the section has a local rule the hub-wide one doesn't cover.
 
 Then reconcile: **every doc in the folder appears in the table, every table row points at a file

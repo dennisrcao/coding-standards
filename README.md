@@ -65,6 +65,7 @@ three `@`-imported at the bottom of its `CLAUDE.md`.
 |------|-----------|
 | `docs/` | the standards — canonical, portable |
 | `docs/090-slash-commands.md` | **the one exception** — a reference copy of the personal `~/.claude/commands/*.md`, which live outside git. Not a standard to copy into a repo; a restore path if a machine is wiped |
+| `docs/091-slash-commands-claude-vs-cursor.md` | same exception, two agents — where the personal commands live in Claude Code vs Cursor, how each loads them, and why `/close-out` is a false cognate between them |
 | `eslint-rules/` | custom rules the standards depend on (`packed-named-imports.mjs` + test) |
 | `scripts/` | tooling a standard calls for (`find-unused-scss-classes.mjs`) |
 
