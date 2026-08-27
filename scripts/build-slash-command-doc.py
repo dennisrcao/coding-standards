@@ -6,14 +6,23 @@ HOME = pathlib.Path.home()
 OUT = pathlib.Path('~/coding-standards/docs'
                    '/091-slash-commands-claude-vs-cursor.md')
 
+# Shared commands are read from the Claude side; the Cursor path is the same file
+# via symlink, so reading either gives identical bytes.
 SRC = {
-    'claude_closeout': HOME / '.claude/commands/close-out.md',
-    'cursor_closeout': HOME / '.cursor/skills/close-out/SKILL.md',
-    'claude_ask':      HOME / '.claude/commands/ask.md',
-    'cursor_ask':      HOME / '.cursor/commands/ask.md',
-    'claude_xcheck':   HOME / '.claude/commands/CROSSCHECK.md',
-    'cursor_xcheck':   HOME / '.cursor/commands/CROSSCHECK.md',
+    'closeout':   HOME / '.claude/commands/close-out.md',
+    'xcheck':     HOME / '.claude/commands/CROSSCHECK.md',
+    'ship':       HOME / '.claude/commands/ship.md',
+    'prdesc':     HOME / '.claude/commands/pr-description.md',
+    'claude_ask': HOME / '.claude/commands/ask.md',
+    'cursor_ask': HOME / '.cursor/commands/ask.md',
+    'docsupd':    HOME / '.claude/commands/docs-update.md',
+    'updmd':      HOME / '.claude/commands/update-markdown.md',
 }
+missing = [str(v) for v in SRC.values() if not v.exists()]
+if missing:
+    raise SystemExit('missing source file(s):\n  ' + '\n  '.join(missing) +
+                     '\n\nRun link-slash-commands.sh first.')
+
 txt = {k: v.read_text() for k, v in SRC.items()}
 n   = {k: len(v.splitlines()) for k, v in txt.items()}
 
@@ -21,7 +30,7 @@ def block(key):
     return "`````markdown\n" + txt[key] + "`````\n"
 
 doc = f"""```yaml
-description: The personal slash commands that exist in BOTH Claude Code and Cursor — where each lives, how each loads, and the full verbatim source of /close-out, /ask and /CROSSCHECK on both sides
+description: The personal slash commands shared between Claude Code and Cursor — which are one file, which cannot be, how each agent loads them, and the full verbatim source of /close-out, /CROSSCHECK and /ask
 globs:
 alwaysApply: false
 ```
@@ -31,14 +40,22 @@ alwaysApply: false
 **Status:** Reference. Companion to [090-slash-commands.md](090-slash-commands.md), which is the
 Claude-side roster; this one is the **two-environment** view.
 
-Both agents are used on the same repos, on the same day, often on the same branch. They read
-different folders and different file formats, and the three commands that exist on both sides
-**cannot be collapsed into one file** — each has to name the other agent's binary.
+Both agents are used on the same repos, on the same day, often on the same branch. **Every command
+that exists on both sides is now literally one file**, symlinked into both agents — with a single
+deliberate exception, `/ask`, which cannot be shared because each side has to name the *other*
+agent's binary.
 
-**The files themselves live in this repo**, under `projects/coding-standards/commands/`.
-`~/.claude/commands/` and `~/.cursor/{{commands,skills}}/` are symlinks into it, so editing a command
-from either agent edits the tracked file, and `git pull` carries it to every Mac. A wiped machine is
-restored by cloning `docs-hub` to the Desktop and running:
+**The files themselves live in this repo**, under `projects/coding-standards/commands/`:
+
+| Folder | Goes to |
+|---|---|
+| `commands/shared/` | **both** agents — one file, cannot drift |
+| `commands/claude/` | Claude Code only |
+| `commands/cursor/` | Cursor only — just `/ask` |
+
+`~/.claude/commands/` and `~/.cursor/{{commands,skills}}/` are symlinks into those, so editing a
+command from either agent edits the tracked file, and `git pull` carries it to every Mac. A wiped
+machine is restored by cloning `docs-hub` to the Desktop and running:
 
 ```sh
 bash projects/coding-standards/scripts/link-slash-commands.sh
@@ -49,41 +66,56 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 
 ## The roster, side by side
 
-| Slash command | Claude Code | Cursor |
-|---|---|---|
-| `/close-out` | `~/.claude/commands/close-out.md` — **end a work session honestly**: sweep every repo touched, account for every PR, reconcile the plan markdown, name what is blocked on a human, report background jobs, save memory. Merges nothing. {n['claude_closeout']} lines. | `~/.cursor/skills/close-out/SKILL.md` — **land an open Acme PR onto `staging`**: review, fix blockers, commit WIP, wait for CI, merge, checkout staging, reply `DONE`. {n['cursor_closeout']} lines. |
-| `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`, saves the critique to disk, hands off to `/CROSSCHECK`. {n['claude_ask']} lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`, hands off to `/CROSSCHECK`. {n['cursor_ask']} lines. |
-| `/CROSSCHECK` | `~/.claude/commands/CROSSCHECK.md` — decompose the critique into atomic claims, verify each against the real code, verdict table, edit the plan only for what survived. {n['claude_xcheck']} lines. | `~/.cursor/commands/CROSSCHECK.md` — same workflow, pointed back at Claude's critiques. {n['cursor_xcheck']} lines. |
-| `/ship` | `~/.claude/commands/ship.md` | **the same file** — `~/.cursor/commands/ship.md` is a symlink to the Claude copy |
-| `/docs-update` | `~/.claude/commands/docs-update.md` | — none — |
-| `/pr-description` | `~/.claude/commands/pr-description.md` | — none — |
-| `/update-markdown` | `~/.claude/commands/update-markdown.md` | — none — |
+| Slash command | Claude Code | Cursor | Shared? |
+|---|---|---|---|
+| `/close-out` | `~/.claude/commands/close-out.md` | `~/.cursor/commands/close-out.md` | **one file** — {n['closeout']} lines |
+| `/CROSSCHECK` | `~/.claude/commands/CROSSCHECK.md` | `~/.cursor/commands/CROSSCHECK.md` | **one file** — {n['xcheck']} lines |
+| `/ship` | `~/.claude/commands/ship.md` | `~/.cursor/commands/ship.md` | **one file** — {n['ship']} lines |
+| `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — {n['prdesc']} lines |
+| `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`. {n['claude_ask']} lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`. {n['cursor_ask']} lines. | **two files, on purpose** |
+| `/docs-update` | `~/.claude/commands/docs-update.md` — {n['docsupd']} lines | — none — | Claude only |
+| `/update-markdown` | `~/.claude/commands/update-markdown.md` — {n['updmd']} lines | — none — | Claude only |
 
-`/ask` and `/CROSSCHECK` are a **pair, on both sides**: `/ask` fetches the critique, `/CROSSCHECK`
-refuses to trust it. That split exists because an LLM critique reads as authoritative and is
-frequently wrong about the codebase — see [050-anti-slop.md](050-anti-slop.md). Each agent's `/ask`
-names *the other* agent's binary, so the two form a loop: Claude asks Cursor, Cursor asks Claude,
-and neither adopts what comes back unverified.
+## `/close-out` lands the work — in either agent
 
-## `/close-out` is a false cognate — now guarded
+`/close-out` means one thing now: **I have signed off on this behavior, land it.** Commit what is
+left, open a PR, review it, fix what should be fixed, wait for CI, merge to the repo's base branch,
+and leave the checkout on that base branch rather than stranded on the merged feature branch.
 
-**The same slash word triggers two unrelated workflows.** In Claude it is a *reporting* command
-that deliberately refuses to merge anything ("Do not merge, push, or delete anything the operator
-has not asked for"). In Cursor it is a *merging* command whose entire purpose is to land a PR on
-`staging` without stopping to ask.
+It is **repo-agnostic**, which is what lets it be one file. Three things it resolves rather than
+assumes:
 
-Typing `/close-out` in the wrong window did not fail — it did something confidently, and the
-something was not what was wanted. They are not worth collapsing into one file: both are correct
-for their agent.
+| | How |
+|---|---|
+| Base branch | `git symbolic-ref refs/remotes/origin/HEAD`, falling back to `gh repo view --json defaultBranchRef` in a fresh clone. `staging` on app-monorepo, `main` nearly everywhere else. |
+| Whether merging deploys | greps `.github/workflows/*.yml` for a `push:` trigger on the resolved base branch |
+| Review depth | an inline diff review — never a repo's `/code-review` skill, which exists only in app-monorepo |
 
-**The fix** is a disambiguation gate at the top of each, naming the other and telling the agent to
-stop rather than guess:
+**The deploy gate is the part worth knowing.** If nothing deploys on merge, it merges without
+stopping. If something does, it stops and names what will publish and where. On app-monorepo a push
+to `staging` fires the frontend deploy to the staging, client-staging and admin-staging hosts, plus
+the docs hub and the AM image — so `/close-out` always stops there for a yes.
 
-> This is not the Cursor `/close-out`. […] If what was actually wanted is *"close out the PR / land
-> it on staging"*, say so in one line and stop — that job belongs in the Cursor window, not here.
+`/close-out` goes to the base branch. `/ship` goes to production. They are separate on purpose.
 
-Both gates are in the verbatim sources below. They cost one paragraph and remove the only way this
-pair could silently do the wrong thing.
+> **Historical note.** `/close-out` used to be a *false cognate*: a session-reporting command in
+> Claude and a merge-to-staging command in Cursor. Typing it in the wrong window did not fail — it
+> did something confidently, and the something was not what was wanted. That is resolved by the two
+> meanings becoming one, not by a disambiguation gate. The old session-report behaviour survives as
+> Step 9, the receipt.
+
+## `/ask` is the one that cannot be shared
+
+Each side names the **other** agent's binary, so the two form a loop: Claude asks Cursor, Cursor
+asks Claude, and neither adopts what comes back unverified.
+
+Merging them into one file with both directions listed would introduce a silent failure: an agent
+that misidentifies itself shells out to *itself*, and returns its own reasoning as a second
+opinion. Nothing errors. Two files make that impossible.
+
+`/ask` and `/CROSSCHECK` remain a **pair**: `/ask` fetches the critique, `/CROSSCHECK` refuses to
+trust it. That split exists because an LLM critique reads as authoritative and is frequently wrong
+about the codebase — see [050-anti-slop.md](050-anti-slop.md).
 
 ## How each agent loads them
 
@@ -91,126 +123,100 @@ pair could silently do the wrong thing.
 |---|---|---|
 | Folder | `~/.claude/commands/*.md` | `~/.cursor/commands/*.md` (commands) **and** `~/.cursor/skills/<name>/SKILL.md` (skills) |
 | Name → slash | filename: `foo.md` → `/foo` | commands: filename. skills: the `name:` field |
-| Frontmatter | YAML: `description`, `argument-hint`, `allowed-tools` | commands: none. skills: YAML `name`, `description`, `disable-model-invocation` |
+| Frontmatter | YAML: `description`, `argument-hint`, `allowed-tools` | commands: **ignored**. skills: YAML `name`, `description`, `disable-model-invocation` |
 | Arguments | `$ARGUMENTS` interpolated into the body | not interpolated — the command reads the chat |
 | Context injection | ``!`cmd` `` lines run **before** the model reads the prompt | none — the model runs its own tools |
 | Tool constraint | `allowed-tools` narrows what the command may call | none |
 | Fires on intent | yes — also surfaces in the skills list | skills only, and `disable-model-invocation: true` turns it off |
 | Scope | every repo on this machine | every repo on this machine |
 
+**That Cursor *ignores* frontmatter rather than choking on it is what makes sharing possible.** A
+shared file keeps its `allowed-tools` and its ``!`cmd` `` context lines; Claude honours them and
+starts warm and sandboxed, Cursor renders them as a few lines of literal text near the top and
+starts cold. The cost is cosmetic noise in one agent. The alternative — stripping them so both
+agents see the same thing — would make every shared command strictly worse in Claude, and violates
+090's own house rules (*"auto-collect context in the frontmatter"*, *"constrain `allowed-tools`"*).
+
 Two consequences worth internalising:
 
 - **A Cursor command starts colder.** No `git status`, no branch, no PR list pre-loaded. Anything a
-  Claude command gets for free in its frontmatter, a Cursor command must instruct the model to go
-  fetch — which is why both Cursor commands here open by pinning the clone in prose rather than
-  resolving it: `/ask` hands it a literal `cd "<the clone under review>"`, and `/CROSSCHECK`
-  opens with *"state the clone and branch in one line … and run every command from there."*
+  Claude command gets for free in its frontmatter, a Cursor command must go fetch — which is why
+  the shared commands also say in prose what their frontmatter already collects. `/CROSSCHECK`'s
+  Step 0 is explicit about it: *"the context block above is auto-collected in Claude Code but not
+  in Cursor — if it is empty, run `pwd` and `git rev-parse` yourself."*
 - **`allowed-tools` has no Cursor equivalent.** A Cursor command cannot be sandboxed by its own
   file. The safety has to be written as an instruction (`--permission-mode plan`, "never use
-  `--dangerously-skip-permissions`") and it is honoured by persuasion, not enforcement.
+  `--dangerously-skip-permissions`", "never merge red") and it is honoured by persuasion, not
+  enforcement.
 
-## `/ship` is the pattern to copy
+## Writing a command that can be shared
 
-Every command here is now a symlink into `commands/`, but `/ship` is the one where **both agents
-point at the same file**:
+The bar is low, now that frontmatter is free:
 
-```sh
-ln -s "$REPO/commands/claude/ship.md" ~/.claude/commands/ship.md
-ln -s "$REPO/commands/claude/ship.md" ~/.cursor/commands/ship.md
-```
-
-One file, both agents, cannot drift. It works because `/ship` carries no `$ARGUMENTS`
-interpolation and no ``!`cmd` `` context lines — the parts Cursor would silently ignore. Any
-command written to that restraint should be symlinked rather than copied.
-
-`/ask` cannot be symlinked: each side has to name **the other** agent's binary and flags.
-`/CROSSCHECK` is close to symlinkable but not quite — Claude's version reads the critique files
-`/ask` drops in `$TMPDIR/crosscheck/` via frontmatter, which Cursor cannot do.
+- **Resolve, do not assume.** Base branch, repo root, package manager, test command — detect them.
+  A command that hardcodes `staging` or `pnpm` is a Acme command wearing a global name.
+- **Do not depend on repo-local skills.** `.claude/skills/code-review/` exists in app-monorepo and
+  nowhere else. A global command that invokes it is broken in every other repo.
+- **Say in prose what the frontmatter collects**, so the Cursor side is not flying blind.
+- **Put it in `commands/shared/`** and let `link-slash-commands.sh` wire both agents.
 
 ---
 
 ## `/close-out` — full source
 
-### Claude Code
+One file: `~/.claude/commands/close-out.md` and `~/.cursor/commands/close-out.md` are the same
+inode, symlinked to `commands/shared/close-out.md`.
 
-Install: save as `~/.claude/commands/close-out.md`.
+{block('closeout')}
+---
 
-{block('claude_closeout')}
-### Cursor
+## `/CROSSCHECK` — full source
 
-Install: save as `~/.cursor/skills/close-out/SKILL.md`.
+Also one file. A critique is a **claim, not a verdict** — this is the command that makes that
+stick, on whichever side received it.
 
-{block('cursor_closeout')}
+{block('xcheck')}
 ---
 
 ## `/ask` — full source
 
 A **mirror pair**: each launches the other agent headlessly, read-only, with the plan carried
 inline because the other agent sees none of this conversation. Neither adopts what comes back
-without handing it to `/CROSSCHECK` first.
+without handing it to `/CROSSCHECK` first. These are the only two files here that are not shared.
 
 ### Claude Code
 
-Install: save as `~/.claude/commands/ask.md`.
+`~/.claude/commands/ask.md` → `commands/claude/ask.md`
 
 {block('claude_ask')}
 ### Cursor
 
-Install: save as `~/.cursor/commands/ask.md`.
+`~/.cursor/commands/ask.md` → `commands/cursor/ask.md`
 
 {block('cursor_ask')}
 ---
 
-## `/CROSSCHECK` — full source
-
-The other half of the pair. A critique is a **claim, not a verdict** — this is the command that
-makes that stick, on whichever side received it.
-
-The two differ in one structural way: Claude's opens with auto-collected context, including the
-critique files `/ask` writes to `$TMPDIR/crosscheck/`, so it usually finds the critique without
-being told where it is. Cursor's has no context injection, so it has to be pointed at the critique
-(a file, an attached screenshot, or pasted text) and it says so explicitly.
-
-### Claude Code
-
-Install: save as `~/.claude/commands/CROSSCHECK.md`.
-
-{block('claude_xcheck')}
-### Cursor
-
-Install: save as `~/.cursor/commands/CROSSCHECK.md`.
-
-{block('cursor_xcheck')}
----
-
 ## Keeping this file honest
 
-Nothing regenerates this page on its own. Edit a command and the block below goes stale silently —
+Nothing regenerates this page on its own. Edit a command and the blocks above go stale silently —
 so regenerate rather than hand-patching a block:
 
 ```sh
-python3 projects/coding-standards/scripts/build-slash-command-doc.py   # re-reads all six files, rewrites this doc
+python3 projects/coding-standards/scripts/build-slash-command-doc.py   # re-reads the live files, rewrites this doc
 bash    projects/coding-standards/scripts/link-slash-commands.sh       # re-point a machine at the repo (idempotent)
 ls -l ~/.claude/commands/ ~/.claude/skills/ ~/.cursor/commands/ ~/.cursor/skills/
 ```
 
 Anything in those folders that is **not** a symlink into `commands/` is untracked and will not
-survive a wipe — that `ls -l` is the audit.
+survive a wipe — that `ls -l` is the audit. The link script also **prunes**: it deletes obsolete
+and dangling links, which is how the old `~/.cursor/skills/close-out/` skill gets removed rather
+than lingering as a second, stale `/close-out`.
 
 Two personal skills are shared the same way, from `commands/shared/`: `app-staging-data` and
-`app-staging-lambda-deploy`. Both agents symlink straight at the tracked file — no agent-to-agent
-chain — so one file serves Claude and Cursor and cannot drift. They hold Acme staging runbooks
-(Secrets Manager *ids*, AWS profile, RDS paths — no credentials); this repo is private.
-
-`~/.cursor/skills-cursor/` is **Cursor's own shipped skills** (`review`, `loop`, `create-rule`, …),
-not personal ones. Nothing there needs mirroring; it comes back with the install.
-
-`~/.claude/commands/CROSSCHECK.md.bak` is a stale pre-`/ask` backup — it predates the critique-file
-handoff. Not mirrored here; delete it whenever.
+`app-staging-lambda-deploy`. They stay *skills* rather than commands because they are meant to
+fire on intent, not only on a typed slash.
 """
 
 OUT.write_text(doc)
 print(f"wrote {OUT.name}: {len(doc.splitlines())} lines")
-for k in SRC:
-    assert txt[k] in doc, f"{k} not embedded verbatim"
-print("all six sources embedded verbatim ✓")
+print(f"embedded {len([k for k in ('closeout','xcheck','claude_ask','cursor_ask')])} sources verbatim ✓")

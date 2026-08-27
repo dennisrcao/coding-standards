@@ -1,5 +1,5 @@
 ```yaml
-description: Roster of the personal Claude Code slash commands in ~/.claude/commands — what each is for, and the full source of the ones worth copying
+description: Roster of the personal machine-global slash commands — what each is for, which agents get it, how to write one, and the full source of the ones worth copying
 globs:
 alwaysApply: false
 ```
@@ -9,18 +9,20 @@ alwaysApply: false
 These are **not** repo commands. They are reachable from `~/.claude/commands/*.md` on each machine,
 so they are available in **every** repo — that is the whole point of them.
 
-**They are tracked here.** The real files live in `projects/coding-standards/commands/claude/`, and
-`~/.claude/commands/` is symlinks into that folder, so a wiped machine is restored by cloning
+**They are tracked here.** The real files live in `projects/coding-standards/commands/`, split by
+which agent gets them — `shared/` (both), `claude/` (Claude Code only), `cursor/` (Cursor only).
+`~/.claude/commands/` is symlinks into those folders, so a wiped machine is restored by cloning
 `docs-hub` to the Desktop and running `bash projects/coding-standards/scripts/link-slash-commands.sh`.
 Writing a command *is* committing it; there is no separate backup step.
 
 A file named `foo.md` in that folder becomes `/foo`. Claude Code also surfaces it in the skills
 list, so it can fire on intent, not just on the typed slash.
 
-**Cursor has its own copy of some of these**, in a different folder and a different format — and
-`/close-out` means something *entirely different* over there. See
+**Most of these are shared with Cursor** — `/close-out`, `/CROSSCHECK`, `/ship` and
+`/pr-description` are literally one file symlinked into both agents, so they cannot drift. Only
+`/ask` is deliberately two files, because each side has to name the *other* agent's binary. See
 [091-slash-commands-claude-vs-cursor.md](091-slash-commands-claude-vs-cursor.md) for the two-agent
-view and the full source of `/close-out` and `/ask` on both sides.
+view, what Cursor ignores in a shared file, and the bar a command has to clear to be shareable.
 
 ## Do
 
@@ -33,8 +35,15 @@ view and the full source of `/close-out` and `/ask` on both sides.
   surprise you.
 - **Write the failure the command exists to prevent.** Every one of these opens with it. That
   paragraph does more work than the step list — it tells the model what "done badly" looks like.
-- **Write it in `commands/claude/` and symlink it**, so it is committed the moment it exists. Then
-  `python3 projects/coding-standards/scripts/build-slash-command-doc.py` refreshes `091`'s copies.
+- **Write it in `commands/shared/` and symlink it**, so it is committed the moment it exists and
+  both agents get it. Drop to `commands/claude/` only when the command genuinely cannot work in
+  Cursor. Then `python3 projects/coding-standards/scripts/build-slash-command-doc.py` refreshes
+  `091`'s copies.
+- **Resolve, don't assume — the base branch especially.** `git symbolic-ref refs/remotes/origin/HEAD`
+  gives `staging` on app-monorepo and `main` nearly everywhere else. A command that hardcodes one is
+  a Acme command wearing a global name.
+- **Don't call a repo-local skill.** `.claude/skills/code-review/` exists in app-monorepo and
+  nowhere else; a global command that invokes it is broken in every other repo.
 
 ## Don't
 
@@ -43,18 +52,26 @@ view and the full source of `/close-out` and `/ask` on both sides.
   a HARD RULES block saying so.
 - **Don't make destructive steps automatic.** Archive, delete, `git mv`, push — propose the list,
   wait for a yes.
+- **Don't let a merge fire a deploy silently.** Merging is not automatically safe just because the
+  operator typed the command: on app-monorepo a push to `staging` publishes to three staging hosts.
+  A command that merges must check `.github/workflows/*.yml` for a `push:` trigger on the target
+  branch and stop for a yes when it finds one. `/close-out` does this at step 7.
 
 ## The roster
 
-| Command | What it is for |
-|---|---|
-| `/docs-update` | Sweep a project's `docs-hub` `docs/development/` — verify each plan against the real repo, strike what landed, archive what's done, refresh section READMEs. **Full source below.** |
-| `/close-out` | End a session honestly — what landed, what's open, what's blocked on me — and leave the tree, plans, and memory truthful. |
-| `/ship` | Take a behavior from wherever it is now through review and staging to production, and prove both sides landed. |
-| `/update-markdown` | Cross off what we actually implemented in the plan markdown we've been following; mark finished sections `✅`. |
-| `/ask` | Ask the other agent (Cursor) to critique this without opening its window — then verify every claim before adopting it. |
-| `/CROSSCHECK` | Another LLM critiqued my plan — verify its claims against the codebase, then push back or update the plan. |
-| `/pr-description` | Ticket link + a before/after behavior table. Nothing else. |
+| Command | Agents | What it is for |
+|---|---|---|
+| `/close-out` | both | I've signed off — **land it.** Commit, PR, review, CI, merge to the repo's base branch, then leave the checkout on that branch instead of stranded on the feature branch. Stops for a yes when merging fires a deploy. |
+| `/ship` | both | Take a behavior from wherever it is now through review and staging to **production**, and prove both sides landed. |
+| `/CROSSCHECK` | both | Another LLM critiqued my plan — verify its claims against the codebase, then push back or update the plan. |
+| `/pr-description` | both | Ticket link + a before/after behavior table. Nothing else. |
+| `/ask` | both, two files | Ask the *other* agent to critique this without opening its window — then verify every claim before adopting it. |
+| `/docs-update` | Claude | Sweep a project's `docs-hub` `docs/development/` — verify each plan against the real repo, strike what landed, archive what's done, refresh section READMEs. **Full source below.** |
+| `/update-markdown` | Claude | Cross off what we actually implemented in the plan markdown we've been following; mark finished sections `✅`. |
+
+`/close-out` and `/ship` are the two halves of promotion, and they are deliberately separate:
+`/close-out` goes to the **base branch** (`staging` on app-monorepo, `main` elsewhere), `/ship`
+goes to **production**. Neither one can be talked into doing the other's job.
 
 `/ask` and `/CROSSCHECK` are a pair: `/ask` gets the critique, `/CROSSCHECK` refuses to trust it.
 That split exists because an LLM critique reads as authoritative and is frequently wrong about the
