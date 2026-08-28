@@ -157,7 +157,8 @@ else {
 
 const trailing = /Clapperboard,\n\} from/.test(wrapped);
 console.log(`${trailing ? "PASS" : "FAIL"}  trailing comma on the final wrapped line`);
-trailing ? pass++ : fail++;
+if (trailing) pass++;
+else fail++;
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

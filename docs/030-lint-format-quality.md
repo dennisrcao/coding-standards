@@ -106,28 +106,22 @@ Where the names have a natural grouping, put each group on its own line. That is
 reason this form wins: a line can carry a related set.
 
 ```ts
-// GOOD — single line when it fits
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home } from "lucide-react";
-
-// GOOD — brace-newline, packed, grouped by meaning
+// GOOD — brace-newline, packed. Wrapped because 196 chars will not fit on one line.
 import {
-  Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home,
-  LayoutGrid, Settings, Clapperboard, ShieldCheck, Building2, Undo2,
-} from "lucide-react";
+  isCancelledJobError, isWorkerRenderConfigured, workerAttachJob, workerCancelJob,
+  workerFirstImageUrl, workerRenderMetaProduct, type WorkerMetaProductSuccess,
+} from "@/lib/c4d/worker-api";
 
-// BAD — gratuitous one-name-per-line (Prettier-style). The only form the rule flags.
+// BAD — the same import, one name per line. The only form the rule flags.
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
-
-// TOLERATED — the hanging form. Legal and not flagged, but not preferred: the first
-// line's width is dictated by wherever `import { ` ends, so names cannot be grouped.
-import { Aperture, Archive, Boxes, FileTextIcon, FolderIcon, Home, LayoutGrid,
-  Settings, Clapperboard, Undo2 } from "lucide-react";
+  isCancelledJobError,
+  isWorkerRenderConfigured,
+  workerAttachJob,
+  workerCancelJob,
+  workerFirstImageUrl,
+  workerRenderMetaProduct,
+  type WorkerMetaProductSuccess,
+} from "@/lib/c4d/worker-api";
 ```
 
 A real example of the grouping paying off, from
@@ -161,6 +155,12 @@ The rule flags **only** one-name-per-line, and autofixes by repacking into the b
 form (collapsing to a single line first if the whole import fits the budget). Imports already
 packed — single-line or brace-newline — are left alone, so adopting it in an existing repo
 produces no mass reformat.
+
+**Not everything above is lintable.** The rule cannot tell brace-newline from the *hanging*
+form (`{` followed by names on the same line, continued at an indent), because both put two or
+more names on a line. Hanging imports therefore pass `eslint` silently. Preferring
+brace-newline is a **review-level** call, not a gate — do not assume a clean lint means the
+imports match the house form.
 
 **Adopt in a new repo:**
 

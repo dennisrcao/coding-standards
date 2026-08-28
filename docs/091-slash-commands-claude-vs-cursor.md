@@ -41,7 +41,7 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 | `/CROSSCHECK` | `~/.claude/commands/CROSSCHECK.md` | `~/.cursor/commands/CROSSCHECK.md` | **one file** — 144 lines |
 | `/ship` | `~/.claude/commands/ship.md` | `~/.cursor/commands/ship.md` | **one file** — 308 lines |
 | `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — 76 lines |
-| `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`. 126 lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`. 48 lines. | **two files, on purpose** |
+| `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`. 135 lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`. 48 lines. | **two files, on purpose** |
 | `/docs-update` | `~/.claude/commands/docs-update.md` — 207 lines | — none — | Claude only |
 | `/update-markdown` | `~/.claude/commands/update-markdown.md` — 94 lines | — none — | Claude only |
 
@@ -527,7 +527,7 @@ State the resolved clone and its branch in one line before running anything.
 Everything below runs **with that clone as the working directory** — pass it explicitly:
 
 ```bash
-cd "<resolved clone>" && cursor-agent -p --mode ask --trust "<prompt>"
+cd "<resolved clone>" && cursor-agent -p --mode ask --trust --model cursor-grok-4.6-high "<prompt>"
 ```
 
 `cursor-agent` reads the repo from its own cwd. Launching it from the wrong directory is
@@ -575,7 +575,7 @@ agreeable mush. Structure it:
 Read-only mode, so it can never edit the repo:
 
 ```bash
-cd "<resolved clone from Step 0>" && cursor-agent -p --mode ask --trust "<the prompt>"
+cd "<resolved clone from Step 0>" && cursor-agent -p --mode ask --trust --model cursor-grok-4.6-high "<the prompt>"
 ```
 
 Notes that matter:
@@ -583,7 +583,14 @@ Notes that matter:
 - `--mode ask` is read-only. **Never** use `--force`, `--yolo`, or plain `-p` here — those
   grant write and shell access to an agent whose output I have not reviewed.
 - `--trust` is required for non-interactive runs; without it, it refuses with a workspace-trust prompt.
-- Add `--model <name>` only if I asked for a specific model. A different family from mine is the point.
+- `--model cursor-grok-4.6-high` is **pinned deliberately — do not drop it.** The CLI's own
+  default is `Auto` (`cursor-agent about` → `Model  Auto`), which routes per request and can
+  land on `claude-opus-5-thinking-high` or `claude-sonnet-5-thinking-high` — a Claude model
+  reviewing Claude output, with no way to tell after the fact. A different family from mine is
+  the entire point of this command, so the family is not left to a router.
+  Override to another *non-Claude* model (`cursor-grok-4.6-xhigh`, `gpt-5.3-codex-high`) only if
+  I name one. Note the CLI's model setting is separate from the Cursor IDE's picker — changing
+  the model in the Cursor window has no effect here.
 - It can take a couple of minutes on a large diff. Let it run.
 - This spends Cursor quota. One call per invocation — do not retry in a loop.
 
@@ -609,6 +616,8 @@ what makes an unverified critique dangerous.
 
 - **"Workspace Trust Required"** → you dropped `--trust`.
 - **Hangs past ~3 minutes** → the diff is too large. Narrow to the specific files and rerun once.
+- **`Unknown model` / model error** → the roster moved. Re-check with `cursor-agent --list-models`
+  and pin the nearest non-Claude equivalent; do not silently fall back to `Auto`.
 - **Not logged in / auth error** → tell me to run `cursor-agent` interactively once to authenticate. Do not try to pass credentials yourself.
 - **Empty or one-line response** → the prompt didn't carry enough context. Cursor cannot
   see our conversation. Rebuild the prompt with the plan inline and rerun once.
