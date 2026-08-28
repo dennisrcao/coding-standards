@@ -1,8 +1,18 @@
 /**
- * Disallow Prettier-style named imports where every specifier sits on its own
- * line. Wrapped imports use the brace-newline form — `{` ends the `import`
- * line, names follow packed on 2-space-indented lines, `} from "…";` closes on
- * its own line — per `docs/030-lint-format-quality.md`.
+ * Keep named imports packed, per `docs/030-lint-format-quality.md`. Two shapes
+ * are reported:
+ *
+ *   1. `onePerLine`    — every specifier sits on its own line (Prettier's shape).
+ *   2. `fitsOnOneLine` — the import is wrapped at all despite the single-line
+ *                        form fitting the budget. Rule 1 of the standard is
+ *                        "one line when it fits", so a gratuitous wrap is just
+ *                        as much a violation as one-per-line — and it is the
+ *                        commoner of the two in practice, because it survives
+ *                        any linter that only looks for one-per-line.
+ *
+ * Wrapped imports that genuinely exceed the budget use the brace-newline form —
+ * `{` ends the `import` line, names follow packed on 2-space-indented lines,
+ * `} from "…";` closes on its own line.
  *
  * CANONICAL. This file is the source of truth; consuming repos copy it into
  * their own `eslint-rules/`. Edit it here, then re-copy downstream.
@@ -19,6 +29,8 @@ export const packedNamedImportsRule = {
     messages: {
       onePerLine:
         "Pack named imports on fewer lines — do not put one import name per line (see 030-lint-format-quality).",
+      fitsOnOneLine:
+        "This import fits on one line ({{length}}/{{budget}} chars) — do not wrap it (see 030-lint-format-quality).",
     },
     fixable: "code",
     schema: [
@@ -45,6 +57,37 @@ export const packedNamedImportsRule = {
 
         if (node.loc.start.line === node.loc.end.line) return;
 
+        const sourceCode = context.sourceCode;
+
+        // A comment inside the declaration would be destroyed by either fix —
+        // both rewrite the whole node from its specifier list. Leave it alone.
+        if (sourceCode.getCommentsInside(node).length > 0) return;
+
+        // Non-named specifiers (`import React, { … }`) are NOT in `named`, so
+        // they must be carried through the fix explicitly or the default
+        // binding is silently deleted.
+        const leading = node.specifiers
+          .filter((s) => s.type !== "ImportSpecifier")
+          .map((s) => sourceCode.getText(s).trim());
+        const specs = named.map((s) => sourceCode.getText(s).trim());
+        const moduleSource = sourceCode.getText(node.source);
+        const kind = node.importKind === "type" ? "type " : "";
+        const prefix = `import ${kind}${leading.length ? `${leading.join(", ")}, ` : ""}`;
+
+        // Rule 1 of the standard: one line when it fits. Checked before the
+        // one-per-line shape, so a short stacked import reports the more
+        // specific reason and collapses in a single pass.
+        const single = `${prefix}{ ${specs.join(", ")} } from ${moduleSource};`;
+        if (single.length <= maxLineLength) {
+          context.report({
+            node,
+            messageId: "fitsOnOneLine",
+            data: { length: String(single.length), budget: String(maxLineLength) },
+            fix: (fixer) => fixer.replaceText(node, single),
+          });
+          return;
+        }
+
         const byLine = new Map();
         for (const spec of named) {
           const line = spec.loc.start.line;
@@ -61,19 +104,11 @@ export const packedNamedImportsRule = {
         context.report({
           node,
           messageId: "onePerLine",
-          fix(fixer) {
-            const sourceCode = context.sourceCode;
-            const specs = named.map((s) => sourceCode.getText(s).trim());
-            const moduleSource = sourceCode.getText(node.source);
-            const kind = node.importKind === "type" ? "type " : "";
-            const packed = formatPackedImport(
-              specs,
-              moduleSource,
-              kind,
-              maxLineLength,
-            );
-            return fixer.replaceText(node, packed);
-          },
+          fix: (fixer) =>
+            fixer.replaceText(
+              node,
+              formatPackedImport(specs, moduleSource, prefix, maxLineLength),
+            ),
         });
       },
     };
@@ -99,11 +134,11 @@ export const packedNamedImportsRule = {
  *
  * @param {string[]} specs
  * @param {string} moduleSource
- * @param {string} kind
+ * @param {string} prefix  e.g. `import ` / `import type ` / `import React, `
  * @param {number} maxLineLength
  */
-function formatPackedImport(specs, moduleSource, kind, maxLineLength) {
-  const single = `import ${kind}{ ${specs.join(", ")} } from ${moduleSource};`;
+function formatPackedImport(specs, moduleSource, prefix, maxLineLength) {
+  const single = `${prefix}{ ${specs.join(", ")} } from ${moduleSource};`;
   if (single.length <= maxLineLength) return single;
 
   const lines = [];
@@ -120,5 +155,5 @@ function formatPackedImport(specs, moduleSource, kind, maxLineLength) {
   }
   lines.push(current);
 
-  return `import ${kind}{\n${lines.join("\n")}\n} from ${moduleSource};`;
+  return `${prefix}{\n${lines.join("\n")}\n} from ${moduleSource};`;
 }

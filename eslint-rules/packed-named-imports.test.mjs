@@ -132,6 +132,82 @@ check(
   { reports: 1, expected: `import { type Unit, deriveMidi } from "./m.ts";` },
 );
 
+// --- fitsOnOneLine: wrapped despite fitting the budget -----------------------
+
+check(
+  "packed but collapsible -> reported and collapsed",
+  `import {
+  useMemo, useRef,
+} from "react";`,
+  { reports: 1, expected: `import { useMemo, useRef } from "react";` },
+);
+
+check(
+  "hanging but collapsible -> reported and collapsed",
+  `import { useMemo,
+  useRef } from "react";`,
+  { reports: 1, expected: `import { useMemo, useRef } from "react";` },
+);
+
+check(
+  "type-only collapsible keeps its `type` keyword",
+  `import type {
+  Alpha, Bravo,
+} from "./t.ts";`,
+  { reports: 1, expected: `import type { Alpha, Bravo } from "./t.ts";` },
+);
+
+// Regression: `named` excludes the default binding, so a fix built only from
+// the named specifiers used to delete it outright.
+check(
+  "default binding survives a collapse",
+  `import React, {
+  useMemo,
+  useRef,
+} from "react";`,
+  { reports: 1, expected: `import React, { useMemo, useRef } from "react";` },
+);
+
+check(
+  "default binding survives a repack",
+  `import React, {
+  AlphaLongName,
+  BravoLongName,
+  CharlieLongName,
+  DeltaLongName,
+} from "react";`,
+  {
+    reports: 1,
+    expected: `import React, {
+  AlphaLongName, BravoLongName, CharlieLongName,
+  DeltaLongName,
+} from "react";`,
+  },
+);
+
+// A comment inside the braces cannot survive a whole-node rewrite, so the rule
+// must decline rather than delete it.
+check(
+  "comment inside the braces is left alone",
+  `import {
+  // keep these together
+  useMemo,
+  useRef,
+} from "react";`,
+  { reports: 0 },
+);
+
+// Wrapping is correct above the budget — must stay silent, or every long
+// import in a repo gets churned.
+check(
+  "genuinely over-budget wrap passes untouched",
+  `import {
+  AlphaLongName, BravoLongName,
+  CharlieLongName, DeltaLongName,
+} from "./t.ts";`,
+  { reports: 0 },
+);
+
 const wrapped = linter.verifyAndFix(
   `import {
   Aperture,

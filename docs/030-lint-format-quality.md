@@ -232,16 +232,27 @@ They are a **review-level and agent-level** expectation, carried by this doc and
 rule template. A clean `eslint` run says nothing about them; a scoped rule that plugs only the
 import hole is exactly how one-per-line leaks back into deps and params.
 
-The rule flags **only** one-name-per-line, and autofixes by repacking into the brace-newline
-form (collapsing to a single line first if the whole import fits the budget). Imports already
-packed — single-line or brace-newline — are left alone, so adopting it in an existing repo
-produces no mass reformat.
+The rule reports **two** shapes, and autofixes both:
 
-**Not everything above is lintable.** The rule cannot tell brace-newline from the *hanging*
-form (`{` followed by names on the same line, continued at an indent), because both put two or
-more names on a line. Hanging imports therefore pass `eslint` silently. Preferring
-brace-newline is a **review-level** call, not a gate — do not assume a clean lint means the
-imports match the house form.
+| Shape | Message | Fix |
+|-------|---------|-----|
+| Every specifier on its own line | `onePerLine` | repack into the brace-newline form |
+| Wrapped at all, but the single-line form fits the budget | `fitsOnOneLine` | collapse to one line |
+
+`fitsOnOneLine` exists because rule 1 of this standard is *one line when it fits* — a
+gratuitous wrap violates it just as much as one-per-line does. It is also the shape that
+**accumulates**, precisely because a linter looking only for one-per-line never sees it: in
+`studio`, the first adoption pass found 9 one-per-line imports and **10** gratuitously wrapped
+ones. Both counts are now enforced.
+
+An import that genuinely exceeds the budget and is already packed — brace-newline or hanging —
+is left alone, so adopting the rule in an existing repo still produces no mass reformat.
+
+**Two things it deliberately will not do.** It skips any import with a comment inside the
+braces, because both fixes rewrite the whole declaration from its specifier list and would
+delete the comment. And above the budget it still cannot tell brace-newline from the *hanging*
+form (`{` followed by names on the same line, continued at an indent), since both put two or
+more names on a line — preferring brace-newline there stays a **review-level** call.
 
 **Adopt in a new repo:**
 
