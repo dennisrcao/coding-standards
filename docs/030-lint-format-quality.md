@@ -83,14 +83,30 @@ A standalone (non-monorepo) project just keeps the single config and the `eslint
 - [ ] **No Prettier**, no `eslint-config-prettier` — `@stylistic` owns formatting
 - [ ] Ignore build output (`dist/**`)
 
-### Packed named imports (no one-name-per-line)
+### Pack, don't stack — imports, hook deps, parameter lists
 
-**Do not** break named imports Prettier-style — one specifier per line. Keep imports
-**compact**: multiple names on one line when they fit; when wrapping, **pack** each
-continued line with as many names as fit under the line-length budget.
+**One rule, three places.** Named imports, React hook dependency arrays, and function /
+component parameter lists all follow the same form:
 
-This is the opposite of Prettier's default multiline import style and is intentional:
-dense import blocks scan faster and diff more cleanly.
+1. Keep the list on **one line** when it fits the 150-char budget. This is the common case —
+   it should cover the large majority of every one of the three.
+2. When it genuinely will not fit, **wrap and pack**: fill each continued line with as many
+   entries as fit under the budget.
+3. **Never one entry per line.** That is Prettier's default shape, and it is the one form
+   this standard rejects.
+
+This is deliberate, and it is the opposite of what an LLM will produce unprompted — the
+training distribution is overwhelmingly Prettier-at-80 open-source React, so agents drift to
+one-per-line in *all three* positions unless the repo says otherwise. Dense lists scan faster,
+diff more cleanly, and a wrapped line can carry a **related set** rather than an arbitrary
+slice.
+
+> **The exception: JSX props stay one per line.** A JSX attribute is a `name={expression}`
+> pair, often a multi-line arrow — packing those produces genuinely worse code. Keep the
+> familiar one-attribute-per-line form for JSX. This section is about *identifier lists*
+> (imports, deps, params), not JSX.
+
+#### Named imports
 
 **Line-length budget: 150.** One number, every repo — for this rule and for
 `@stylistic/max-len` where that is enabled. There is deliberately **no per-repo escape hatch**;
@@ -137,6 +153,66 @@ import {
 } from '@/lib/launchcontrol/geometry.ts';
 ```
 
+#### Hook dependency arrays
+
+A `useMemo` / `useCallback` / `useEffect` dependency array is an identifier list, so it packs
+the same way. In practice almost every dep array fits on one line and should stay there.
+
+```ts
+// GOOD — one line. The overwhelmingly common case.
+}, [showSidePanel, mood, analyzing, imageCount, uploading, projectId]);
+
+// GOOD — wrapped and packed, because 20 deps will not fit in 150 chars.
+}, [
+  showSidePanel, mood, analyzing, imageCount, uploading, projectId, savingBrief, briefSaved,
+  fragments, savedPrompts, activeSessionId, handleAddPromptToShotlist, handleDeletePrompt,
+  handleUpdateFragment, handleCreateFragment, handleDeleteFragment, handleMoodCommit,
+]);
+
+// BAD — one dependency per line.
+}, [
+  showSidePanel,
+  mood,
+  analyzing,
+  imageCount,
+]);
+```
+
+A dep array that needs three packed lines is also a **design signal**, not just a formatting
+one: it usually means the component is doing several unrelated jobs and the memo should be
+split. Pack it, then ask whether it wants extracting.
+
+#### Function & component parameter lists
+
+Same form. Keep the destructured props on the signature line when they fit; when they do not,
+open the brace and pack the names.
+
+```ts
+// GOOD — fits on one line at 150, so it stays there.
+function ImagesPage({ projectId, onBack, onSelectProducts, onNeedProject, returnToShotlist = false }: ImagesPageProps) {
+
+// GOOD — wrapped and packed, trailing comma kept.
+const AddNodeButton = ({
+  disabled, i, nodeType, nodeDisplayName, onNodeCreateClick, tileId, onActivate,
+}: IAddNodeButtonProps) => {
+
+// GOOD — positional params, packed the same way.
+function handleSocketKeyDown(
+  e: React.KeyboardEvent<HTMLDivElement>, nodeId: string, socketKey: string,
+  side: "input" | "output", reteManager: ReteManager,
+) {
+
+// BAD — one parameter per line.
+function ImagesPage({
+  projectId,
+  onBack,
+  onSelectProducts,
+}: ImagesPageProps) {
+```
+
+Interface and type members are **not** covered — `interface Props { … }` keeps one member per
+line, because each member carries its own type, optionality and doc comment.
+
 ### `object-curly-newline` is deliberately NOT part of this standard
 
 It used to be, with `ImportDeclaration: 'never'`. That setting forbids a line break straight
@@ -147,9 +223,14 @@ Its `ExportDeclaration` half was independently hazardous: the fixer only *delete
 the packing rule covers imports alone, so on a repo with multi-line barrel files it yields
 `export {useFoo,` … `type Bar,}`, and it cannot touch comment-interleaved export blocks at all.
 
-**Enforcement:** custom ESLint rule, canonical at
+**Enforcement (imports only):** custom ESLint rule, canonical at
 [`../eslint-rules/packed-named-imports.mjs`](../eslint-rules/packed-named-imports.mjs). Copy
 that file into the consuming repo's `eslint-rules/` and wire it as in the config above.
+
+**Hook deps and parameter lists are not linted** — the rule covers `ImportDeclaration` only.
+They are a **review-level and agent-level** expectation, carried by this doc and by the Cursor
+rule template. A clean `eslint` run says nothing about them; a scoped rule that plugs only the
+import hole is exactly how one-per-line leaks back into deps and params.
 
 The rule flags **only** one-name-per-line, and autofixes by repacking into the brace-newline
 form (collapsing to a single line first if the whole import fits the budget). Imports already
