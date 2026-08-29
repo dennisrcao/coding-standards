@@ -109,9 +109,8 @@ This is the actual work; everything else is bookkeeping. For each plan:
 5. **Refresh the plan's Status paragraph** at the top so it opens with what is closed and what is
    still open — in the house voice: specific, bolded verdict, named residue.
    (`**Still open: trustedProxies only.** Deliberately — …`)
-6. **Trim finished work so it stops reading as pending.** Per the Financials README convention:
-   a doc's live surface is its open items. History belongs in `git log -p`, not in a checklist
-   that scans as a todo list.
+6. **Trim finished work so it stops reading as pending.** A doc's live surface is its open items.
+   History belongs in `git log -p`, not in a checklist that scans as a todo list.
 7. Owner-only leftovers ("confirm this in the bank", "click X in the bank's UI") do **not** keep a
    doc alive in Development. Strike them answered, or write them as deferred, then archive.
 
@@ -134,10 +133,11 @@ Acme is the exception: its tickets archive to `projects/app/docs/__MVP2/z_Archiv
 past roughly five docs that genuinely read as one workstream — acme's `__MVP2/` qualifies; a
 folder holding one or two docs does not.
 
-This is not cosmetic. The lane is sorted by how much each doc still demands of you (`sortByDemand`,
-`sidebar-sections.ts`): `proposal` 0, `active` 1, **folder 2**, shipped-with-leftovers 2.5,
-`shipped` 3, `reference` 5. A folder has no status of its own, so it **hides its docs' badges from
-the sort** — an untouched proposal inside one sinks below a loose doc that shipped weeks ago.
+This is not cosmetic. The lane is sorted by **name** (`sortByName`, `sidebar-sections.ts`) — folders
+and files intermixed, so the `__` prefix pins a doc to the top. A folder therefore **hides its docs'
+badges behind a collapsed row**: an untouched proposal inside one is invisible until you expand it,
+while a loose doc advertises its state on sight. Status badges are per-row only and never reorder
+the list (`AGENTS.md` §2).
 
 So: propose flattening any folder under the threshold (`git mv` the docs up, delete the folder
 README), and say what the README said that is worth keeping. Routing rules — *"measured geometry
