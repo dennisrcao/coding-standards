@@ -120,12 +120,12 @@ Sort every doc into exactly one bucket, then **show me the table and wait**:
 
 | Bucket | Test | Action |
 |---|---|---|
-| **Archive** | Whole plan implemented **and** its done-gate confirmed merged | `foo.md` → `✅_foo.md`, `git mv` into `projects/<project>/docs/archive/` |
+| **Archive** | Whole plan implemented **and** its done-gate confirmed merged | `foo.md` → `✅_foo.md`, `git mv` into `projects/<project>/docs/archive/`. If that archive is day-foldered (all Acme ones are), go into `<YYYY-MM-DD>/` for the day the done-gate fired — `mkdir -p` it if absent. No resolvable date ⇒ leave it loose at the archive root; never fall back to mtime or `git log`. |
 | **Delete** | Superseded, duplicated, or dangling — describes a design that was abandoned or replaced | `git rm`. Do **not** archive it; archive is for finished work, not dead work |
 | **Keep** | Anything with an open item | Stays in `development/` |
 | **Rename** | Filename does not say what the doc accomplishes, still carries a legacy `__` prefix or a date, or a `✅_` is sitting in Development | Rename to `<what-it-accomplishes>.md` (no prefix, no date) / move the `✅_` to archive |
 
-Acme is the exception: its tickets archive to `projects/app/docs/__MVP2/z_Archived/`.
+Acme is the exception: its tickets archive to `projects/app/docs/__MVP2/z_Archived/<YYYY-MM-DD>/`.
 
 ## Step 6 — Flatten unearned folders, then fix the READMEs that survive
 
