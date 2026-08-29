@@ -50,14 +50,50 @@ three `@`-imported at the bottom of its `CLAUDE.md`.
 ## Writing a new standard
 
 - **Numbering** — `001` general, `005` backend, `010`–`029` frontend, `030`–`049` tooling &
-  quality, `050`+ process and environment. Leave gaps; standards get inserted between.
+  quality, `050`+ process and environment, `100`+ agents & LLM pipelines. Leave gaps; standards
+  get inserted between.
 - **Shape** — fenced `yaml` frontmatter block → `# Title (scope)` → **Do** / **Don't** →
   `## Canonical shape` with real code. Rules carry their reason inline; a rule without a
   rationale gets argued with instead of followed.
 - **Ground it.** Cite the real repo and file the pattern (or the bug) came from. Standards
   derived from problems this codebase actually hit get followed; generic advice does not.
+  Note the "or the bug" — an *omission* is citable evidence (`grep` returning nothing where
+  something must exist), which is how `105` and the idempotency rule in `100` are grounded.
+- **Precedence is per claim, never per repo.** `020-zustand.md` is the pattern to copy: name an
+  upstream source of truth, then a three-way table saying which parts are *derived from* it,
+  which are *deliberately narrower*, and which are *downstream* of a silent or stale upstream —
+  plus the **Documented divergence** clause for a target repo that legitimately disagrees. Do not
+  rank source repositories by reputation; a rule wins on mechanism, not on where it came from.
 - **Cross-link** rather than restate — e.g. `020-zustand.md` points at `025-tanstack-query.md`
   for the server/client-state boundary instead of duplicating it.
+
+### The `100`+ band — start with `101`
+
+The agent/LLM band is eight docs, and **a new project should not import all of them.** Several
+solve problems a greenfield codebase does not have yet, and adopting them early builds the
+speculative infrastructure `125` itself warns against.
+
+[`101-llm-adoption-order.md`](docs/101-llm-adoption-order.md) is the entry point: it goes doc by
+doc saying which rules are **in force on day one** and which are **trigger-gated**, each with a
+checkable event rather than a feeling. It also asks the gate question the four source codebases
+could not — *do you need an agent at all?* — because if there is no tool loop you don't control,
+`125` and `130` never apply. Copy `101` into a target repo alongside the rules and `@`-import it
+first.
+
+### The `100`+ band — what it does not yet cover
+
+The band's seven rule docs (`100` · `105` · `110` · `120` · `125` · `130` · `140`, sequenced by
+`101`) are not the whole domain. These
+are deliberately **out of scope** and are named here so nobody infers the band is complete:
+
+| Gap | Why deferred |
+|---|---|
+| **Cost & rate-limit budgets** — per-job/tenant spend caps, what to do at the cap | `110`'s token-headroom rule is a truncation alarm and says so; money is a separate concern |
+| **Data retention / PII / provider training opt-out** | an *adoption* gate for a repo handling customer data, not a library-ship gate |
+| **Provider abstraction & model routing** | pinning is in `100`; a routing layer is its own doc |
+| **Human-in-the-loop beyond `105`'s confirmation seam** | the seam exists; the workflow around it does not |
+| **Concurrency, cancellation, streaming retry** | health under concurrent in-flight calls is undefined today |
+| **Multi-tenant cache isolation** | `120`'s cache rules assume one tenant per conversation |
 
 ## What else lives here
 
