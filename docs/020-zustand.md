@@ -56,7 +56,8 @@ only**; see *State ownership* below for the boundary.
   sufficient PR note.
 - **`getState()` inside a render body, `useMemo`, or as a `useEffect` dependency.** It captures a
   frozen snapshot and won't update when state changes. Event handlers, modules, and async callbacks
-  only.
+  only. **One exception, under a server-render test harness** — see *The first-paint fallback* below.
+  It is narrow, and it is not a licence to reach for `getState()` in render generally.
 - **Treat `getState()` + `await` as current.** The value is a snapshot; it may be stale by the time
   the promise resolves. Re-read after the await or design so it can't matter.
 
@@ -83,6 +84,56 @@ export const useShotsForSession = (id: string | null) =>
 **Extract at three.** If the same inline selector body appears in 3+ files, it becomes a named hook
 in the store file. (With `create()` private this rarely arises — it's the rule for repos that have
 taken the documented divergence below.)
+
+## The first-paint fallback (Zustand v5 + `renderToString`)
+
+v5 changed more than `equalityFn`. It also changed which state a selector reads during a **server**
+render — `zustand/react.js`:
+
+```js
+const slice = React.useSyncExternalStore(
+  api.subscribe,
+  () => selector(api.getState()),
+  () => selector(api.getInitialState()),   // ← the server snapshot, v5
+);
+```
+
+v4 passed `api.getServerState || api.getState` there. v5 passes **`getInitialState`** — the state the
+store was *created* with. So under `renderToString` / `renderToStaticMarkup`, a selector returns the
+store's initial state while `getState()` returns the live one. They genuinely disagree, and the
+`getState()` read is the correct one.
+
+This matters to any repo whose page tests seed a store and then render to a string, which is a common
+shape — the store is populated after module init, so every selector in the tree reads empty and the
+page renders its empty state.
+
+**The sanctioned form**, where it is needed:
+
+```ts
+const storeShots = useShotsForSession(sessionId);          // live in the browser
+const shots = React.useMemo(
+  () =>
+    storeShots.length > 0 || !sessionId
+      ? storeShots
+      : (useShotlistStore.getState().bySession[sessionId]?.shots ?? storeShots),
+  [storeShots, sessionId],
+);
+```
+
+Rules for it:
+
+- **Both branches must read the same slice.** The fallback is a different *snapshot* of one value,
+  never a second source of truth.
+- **Put it behind one named hook.** Hand-copying it per page multiplies a subtle exception and makes
+  it read as drift; a reviewer then deletes it and loses the suite. One helper, one comment, one
+  place to revisit.
+- **Say why in a comment, and name `getInitialState`.** "SSR / first paint" alone does not survive
+  review — it reads as cargo cult, and a reader who greps the app for `hydrateRoot` finds nothing.
+- **Revisit when the harness changes.** If the page tests move to a DOM renderer (`jsdom` +
+  `@testing-library/react`), this exception dies with them. Delete it then.
+
+Only the harness earns this. `getState()` in a `useMemo` for any other reason is still the Don't
+above: a memo cannot list store state in its dependency array, so nothing can invalidate it.
 
 ## Async actions must guard against staleness
 
@@ -200,3 +251,11 @@ export const getMyStore = () => useMyStore.getState();            // non-React r
   - *Rejected:* narrowing `025`'s globs to exclude `*-store.ts` — that would strip "no server state
     cached in Zustand" from the exact files it targets, and globs are rewritten per repo on adoption
     anyway. *Deferred:* a house `staleTime` floor number in `025` — needs a real call, not a default.
+
+- **2026-08-29** — Added *The first-paint fallback*. Found by acting on a code review that flagged
+  four `getState()`-in-`useMemo` sites in Acme's `apps/studio` as violations of the Don't above:
+  deleting them cost **35 tests across 4 files** against a 2997-pass baseline. The rule was right in
+  general and wrong there, and this file gave a reader no way to tell the difference — it is strong
+  on v5's `equalityFn` removal but never mentioned that v5 also moved the server snapshot to
+  `getInitialState`. The review's own first pass reached the opposite (wrong) conclusion by reasoning
+  from **v4**'s `getServerState || getState`, which is the trap this section exists to close.
