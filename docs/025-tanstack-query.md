@@ -89,6 +89,12 @@ blog — so "the blog wins" holds, once you read the right post.)
   wrapping one `useQuery` call", and carries no update notice. **The later posts reverse that
   default** — *The Query Options API* and *Creating Query Abstractions* put `queryOptions()` first.
   We follow the later guidance.
+  *Exception — real-time subscriptions & domain encapsulation:* Custom hooks under `hooks/queries/`
+  are the expected pattern when a query hook manages active subscriptions (e.g. Supabase Realtime
+  channels invalidating on `postgres_changes`, WebSocket events), combines query state with
+  mutations or derived domain lookups (e.g. parsed `Set` key sets), or encapsulates device/kiosk
+  polling intervals. Forcing bare `queryOptions` onto subscription-managing hooks pushes connection
+  lifecycle boilerplate onto consuming components.
 - **Server state cached in Zustand** — no `loadSeq` tokens, no manual sequence guards.
 - **A hand-rolled TTL cache or in-flight dedup in front of a query.** Both are built in; two cache
   layers means two things to invalidate.
@@ -220,3 +226,8 @@ Mutations*.
   per query and carries no supersession notice, so the Don't now names it explicitly as superseded by
   *The Query Options API* / *Creating Query Abstractions*. Rejected the accompanying claim that the
   rule contradicted upstream — the bullet already permitted logic-sharing hooks.
+- **2026-08-29** — Clarified the custom hook boundary to explicitly permit `hooks/queries/` when
+  managing active subscriptions (e.g. Supabase Realtime / WebSocket events invalidating on updates),
+  composed mutations, derived domain lookups, or kiosk polling intervals. Forcing bare `queryOptions`
+  onto subscription-managing hooks violates separation of concerns by pushing connection lifecycle
+  into UI components.
