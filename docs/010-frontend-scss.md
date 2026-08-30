@@ -42,3 +42,59 @@ If you change layout/styling in TSX, update the colocated `.module.scss` in the 
 ## Unused classes
 
 Classes can drift out of sync — defined in the `.module.scss` but no longer referenced. No maintained linter or VS Code extension catches this on a modern ESLint; see [080 Unused CSS-Module classes](080-unused-scss-classes.md) for a zero-dep script and the rationale.
+
+## Responsive: fluid containers need fluid type
+
+A layout sized in viewport units (`vw`/`vh`) whose type is sized in fixed units (`px`/`rem`)
+is not responsive — it is a **zoom that only half-works**. The boxes shrink with the viewport;
+the text inside them does not. Every such pair has a width where the two curves cross and the
+text no longer fits its box, and the symptom is clipped or overflowing labels rather than an
+obviously broken page, so it survives review.
+
+If a container is `vw`, its type should scale too. `min()` / `max()` let you do that without
+touching the width the design was authored at:
+
+```scss
+// 1.574vw resolves to 27.2px at 1728px wide, so min() keeps the original size at
+// the reference width and scales down only below it. Nothing above it changes.
+font-size: min(1.7rem, 1.574vw);
+```
+
+Prefer this over widening the container. Widening a sidebar or rail to fit its text takes that
+width from the content column — and if the content's own children are sized in `vw` rather than
+`%` of their parent, they will not reflow into the narrower column, they will just overflow and
+be hidden. Scaling the type costs no layout width at all.
+
+**Watch the fixed costs.** Scrollbar gutters (`overflow-y: scroll` reserves one even when
+nothing scrolls) and hardcoded padding do not shrink with the viewport, so proportional type
+scaling alone stops being enough at small sizes. Measure at the narrow end, not just the wide
+one.
+
+### Breakpoint mixins
+
+Keep a `below()` helper next to the variables rather than hand-writing media queries:
+
+```scss
+// _mixins.scss
+@use 'variables' as *;
+
+@mixin below($breakpoint) {
+  @media (max-width: $breakpoint) { @content; }
+}
+```
+
+**A breakpoint value belongs in exactly one place.** Sass variables are compile-time and CSS
+custom properties are **not legal in `@media` conditions**, so a `--breakpoint-*` custom
+property cannot drive a media query — do not build that bridge expecting it to work. If a
+threshold is consumed only by CSS, it lives in `_variables.scss` and nowhere else; if it is
+consumed only by JS (e.g. a layout that swaps component trees rather than restyling), it lives
+in a TS constant and nowhere else. Duplicating it in both and hoping they stay in sync is how
+you end up with breakpoint variables no one uses and literals scattered through components.
+
+### Verifying
+
+Assert that text fits, not that an element is visible — a clipped label is still `visible`. In
+a browser test, measure a `Range` over the text node against the element's **content box**:
+`clientWidth` includes padding and reads falsely clean. Wait for `document.fonts.ready` first,
+or you measure the fallback font. Don't assert exact pixel widths for anything that reserves a
+scrollbar gutter: headed and headless browsers disagree, and so do platforms.
