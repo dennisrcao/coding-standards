@@ -286,10 +286,12 @@ production sessions are separate logins because auth is origin-scoped.
 
 ### If you are Claude Code
 
-Use the **Playwright MCP** browser tools (`mcp__pw-5173__*`, `mcp__pw-5174__*`, or
-`mcp__playwright-docs__*` — these servers differ only in browser-profile directory).
-Prefer a profile that is not one of the localhost dev profiles, so a deployed-environment
-session does not pollute local dev.
+Use the **Playwright MCP** browser tools (`mcp__playwright__*`). There is one
+shared server for the whole workspace — start it with `/PLAYWRIGHT-start` if the
+tools are missing.
+Open a fresh tab for a deployed-environment check rather than reusing a tab that
+is signed in to localhost, and close only the tabs you opened — the browser is
+shared with every other session.
 
 Sequence: `browser_navigate` → `browser_snapshot` to read state → interact →
 `browser_take_screenshot` for the evidence artifact. Prefer `browser_snapshot` over

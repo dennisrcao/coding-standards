@@ -1,116 +1,116 @@
 ```yaml
-description: Give every repo its own Playwright MCP browser profile via a committed per-repo .mcp.json, so multiple Claude Code instances can drive Playwright at the same time without fighting over a single shared Chrome profile.
+description: Run one shared Playwright MCP server for the whole workspace, so every Claude Code session across every repo drives a single browser window and works in its own tab instead of each repo spawning its own browser.
 globs:
   - "**/.mcp.json"
 alwaysApply: false
 ```
 
-# Playwright MCP — per-repo browser isolation
+# Playwright MCP — one shared browser for the workspace
 
-When several Claude Code instances are open at once (different repos, different
-windows) and each one smoke-tests its frontend through **Playwright MCP**, they
-collide. The collision is **not** about ports — it's the browser profile.
+## The rule
 
-## Why they collide
-
-The `playwright` MCP server is defined **globally** in `~/.claude.json`
-(`mcpServers.playwright`), so every instance inherits the same launch command:
-
-```json
-"playwright": { "command": "npx", "args": ["@playwright/mcp@latest"] }
-```
-
-Because it's a **stdio** server, each instance already spawns its *own*
-Playwright MCP process — they don't share a server or a port. The contention is
-one level down: with no args, Playwright MCP launches Chrome against a **single
-shared persistent profile** (`~/Library/Caches/ms-playwright/mcp-chrome-*`).
-Chrome enforces **one process per `user-data-dir`**, so the second instance
-either fails to launch or hijacks the window the first one is mid-test in. That
-is the "competing for control" symptom.
-
-> Dev-server ports are already separated (5173 / 5174 / 9000 / …) — that part is
-> fine. The fix here is isolating the **browser profile**, not the port.
-
-## The fix — a committed per-repo `.mcp.json`
-
-Drop a `.mcp.json` at the repo root that **overrides** the global `playwright`
-server with a repo-specific one. Keep the server name `playwright` so every
-existing `mcp__playwright__*` tool and `*_TestFrontend` skill keeps working
-unchanged — **project scope wins over the global user scope** for a same-named
-server. Point it at a per-repo `--user-data-dir` (and `--output-dir`) so the
-profiles can never lock each other out:
+There is **one** Playwright MCP server for the entire machine. Every repo's
+`.mcp.json` points at it, byte-identical:
 
 ```json
 {
   "mcpServers": {
     "playwright": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest",
-        "--user-data-dir", "/Users/<you>/.cache/pw-mcp/<RepoName>/profile",
-        "--output-dir",    "/Users/<you>/.cache/pw-mcp/<RepoName>/output"
-      ],
-      "env": {}
+      "type": "http",
+      "url": "http://127.0.0.1:8931/mcp"
     }
   }
 }
 ```
 
-Each repo gets its own logged-in Chrome profile that persists across sessions and
-is invisible to every other repo. N instances → N independent browsers.
+Start it with `/PLAYWRIGHT-start`, stop it with `/PLAYWRIGHT-stop`. Keep the server
+name `playwright` so every `mcp__playwright__*` call and every `*_TestFrontend`
+skill resolves without per-repo edits.
 
-Currently configured: `studio-app`, `studio-app-2`, `studio-app-3`,
-`studio`, `docs-hub`.
+**Do not** add a per-repo stdio server with its own `--user-data-dir`. That is the
+setup this document used to prescribe, and it is what caused the problem below.
 
-### How to apply — extend to a new repo
+## Why this replaced per-repo profiles
 
-1. Pick a profile dir keyed by the repo name and create it:
+The old rule gave each repo its own `playwright-mcp` process and browser profile.
+In a multi-root workspace where every tab loads `app-monorepo-1/.mcp.json`, that
+produced, measured on 2026-08-31:
 
-   ```bash
-   REPO=My-New-Repo
-   mkdir -p "$HOME/.cache/pw-mcp/$REPO/profile" "$HOME/.cache/pw-mcp/$REPO/output"
-   ```
+- **20 idle `playwright-mcp` processes** (~110 MB each, ≈2 GB) — 4 sessions × 4
+  servers, because that one config had accumulated four server entries.
+- **Two Chrome windows at once**, on two different profiles.
+- Profile collisions: Chromium holds a `SingletonLock` per `--user-data-dir`, so
+  two sessions sharing a profile got `Browser is already in use for …`.
 
-2. Create `<repo>/.mcp.json` with the snippet above, substituting your absolute
-   home path and `$REPO` for both `--user-data-dir` and `--output-dir`. **Use
-   absolute paths** — MCP configs do not expand `~`.
+The stated reason for keying profiles by port was that studio auth is
+origin-scoped `localStorage`. That reason does not survive inspection: **port is
+part of the origin**, so `localhost:5173` and `localhost:5174` already have
+separate `localStorage` inside a single profile. The split bought nothing the
+origin boundary did not already provide.
 
-3. Commit `.mcp.json`. On first launch in that repo, Claude Code prompts once to
-   trust the project MCP server — approve it.
+## How one server yields one window
 
-That's it. The global `playwright` server in `~/.claude.json` stays as the
-fallback for any repo that doesn't ship its own `.mcp.json`.
+From `@playwright/mcp` v0.0.79 (`playwright-core/lib/coreBundle.js`):
 
-### Caveat — don't nuke other repos' profiles
+- `--shared-browser-context` sets a single `sharedBrowserPromise` → **one** browser
+  launch total.
+- Each connected client receives `browser.contexts()[0]` — the **same** context, so
+  one window rather than one window per client.
+- Each client still gets its **own `BrowserBackend`**, so every session tracks its
+  own current tab. Sessions genuinely run in parallel; one session's navigation
+  does not move another's tab.
+- Teardown is `if (sharedBrowserPromise && clientCount > 0) return;` — the browser
+  survives while any client is attached and closes when the last one leaves. Nothing
+  needs to manage the browser lifecycle by hand.
 
-Old recovery snippets that clear "stale" Playwright state are now **wrong and
-destructive**:
+## Flags that are load-bearing
+
+Do not "simplify" these; each was found by a failure.
+
+| Flag | Why |
+|---|---|
+| `--shared-browser-context` | **Not** `--isolated`. Both reuse one browser, but `--isolated` gives each client a *new context*, which Chrome renders as a new window — the original bug. |
+| `--host 127.0.0.1` | Without it the server binds **`[::1]` only**, and a client dialing `127.0.0.1:8931` gets connection-refused, presenting as a dead MCP server. |
+| `--allowed-hosts localhost:8931,127.0.0.1:8931` | The host check is a **literal string match** against `localhost:8931` regardless of what was bound, so a request arriving via `127.0.0.1` is answered `403 Access is only allowed at localhost:8931`. |
+| `node …/@playwright/mcp/cli.js` | Invoke the module, **not** the `playwright-mcp` bin wrapper. Several repos ship a reset step containing `pkill -f playwright-mcp`; the wrapper's path matches that pattern and the module path does not, so the shared server survives another repo's reset. |
+| `--browser chrome` | Resolves to `/Applications/Google Chrome.app/…/Google Chrome`, which likewise does not match the `pkill -f Chromium` in those same reset steps. |
+
+## Working in a shared window
+
+One context means one tab list and one cookie jar.
+
+- **Navigate in your own tab.** Each client's current-tab pointer is already isolated.
+- **Never close a tab you did not open.** `browser_tabs` lists *every* session's
+  tabs, so closing by index can close a tab another agent is mid-test in.
+- **Keep the shared profile lean.** Sign in only to what testing needs. The old
+  per-port profiles had accreted live sessions for Gmail, the AWS console, Slack,
+  GitHub, Venmo and brokerage accounts; in a browser every repo's agent shares,
+  that is a blast radius, not a convenience. Cookies remain separated by origin,
+  and each checkout serves on a distinct port, so logins do not bleed between repos.
+
+## Verifying a change to this setup
+
+The failure mode is a *window count*, so test observationally, not by unit test:
 
 ```bash
-# ❌ clears the GLOBAL profile (no longer where per-repo profiles live)
-rm -rf ~/Library/Caches/ms-playwright/mcp-chrome-*
-# ❌ kills EVERY repo's Playwright browser, not just this repo's
-pkill -f playwright-mcp; pkill -f Chromium
+# exactly one server (awk, not grep -c: grep self-matches via the parent shell argv)
+ps -eo pid=,args= | awk '/@playwright\/mcp\/cli\.js/ && !/awk/ {c++} END {print c+0}'
+
+# count browsers on the shared profile
+ps -eo args= | grep "[G]oogle Chrome.app/Contents/MacOS/Google Chrome " \
+  | grep -c "pw-mcp/shared/profile"
 ```
 
-Per-repo profiles now live under `~/.cache/pw-mcp/<RepoName>/profile`. To reset
-**only the current repo**, clear that one dir instead:
+Drive two sessions in two different repos and confirm the browser count goes
+`0 → 1 → 1`, not `0 → 1 → 2`.
 
-```bash
-rm -rf ~/.cache/pw-mcp/<RepoName>/profile && \
-  mkdir -p ~/.cache/pw-mcp/<RepoName>/profile
-```
+## Anti-patterns
 
-Any `*_TestFrontend` skill that still references the global `mcp-chrome-*` path
-or an unscoped `pkill Chromium` should be updated to the per-repo path above.
-
-### Alternative isolation modes (for reference)
-
-- **`--isolated --storage-state <file>`** — fresh in-memory browser each run with
-  auth injected from a saved Playwright storageState JSON. Best for heavy
-  parallelism (zero shared on-disk state); use only if your saved auth blob is a
-  real storageState file.
-- **`--port <n>`** — runs Playwright MCP as a standalone HTTP server you connect
-  to via `url`. Not needed for stdio isolation; only useful if you want to attach
-  to / watch a specific browser independently.
+- `pkill -f playwright-mcp; pkill -f Chromium` as a "reset". Against a shared server
+  this is a workspace-wide kill switch. Use `/PLAYWRIGHT-stop` then
+  `/PLAYWRIGHT-start`, or just close your own tabs. (The flag choices above make the
+  shared server immune to the copies of this block still living in repo skills.)
+- Re-introducing `--user-data-dir` per repo. See the whole first half of this file.
+- Committing `.mcp.json` in a repo shared with collaborators who do not run this
+  server — they would inherit a Playwright entry pointing at a port nothing is
+  listening on. Keep it in `.git/info/exclude` or `.gitignore` there.
