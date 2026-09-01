@@ -195,8 +195,12 @@ lacks fields the detail endpoint returns? Use `placeholderData`.
 
 <https://tkdodo.eu/blog> — the source for everything above. This standard deliberately covers only the
 rules that keep coming up in our repos. Go upstream for `select` and data transformation, render
-optimization, error handling, optimistic updates, Suspense/React 19, infinite queries, WebSockets,
+optimization, error handling, Suspense/React 19, infinite queries, WebSockets,
 offline/`networkMode`, forms, and testing.
+
+**Optimistic updates now have their own standard — [`026-optimistic-updates.md`](026-optimistic-updates.md).**
+They kept coming up, and the failure mode is specific enough to be worth writing down: a mutation
+that optimistically updates one cache but invalidates two.
 
 Posts worth reading in full before writing much query code: *Practical React Query*, *Effective React
 Query Keys*, *The Query Options API*, *Mastering Mutations*, and *Automatic Query Invalidation after
