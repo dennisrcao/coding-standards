@@ -1,5 +1,9 @@
 # Skill Builder Guide
 
+**Reference only — not adoptable.** This doc stays in the hub (`150` band = guides and
+references). Do not copy it to `.cursor/rules/`; point agents at this path when they need
+skill-authoring context.
+
 > _The complete guide to building Skills for Claude — covers fundamentals, planning, testing, distribution, patterns, and YAML frontmatter reference (converted from [Anthropic's official PDF](https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf?hsLang=en))_
 
 ## Contents

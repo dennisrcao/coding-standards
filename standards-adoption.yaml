@@ -1,0 +1,180 @@
+# Adoption manifest — coding-standards library
+#
+# Rule IDs match filename prefixes: docs/<category>/<ID>-<slug>.md
+# Target repos copy adoptable rules to .cursor/rules/<ID>-<slug>.mdc (see README.md).
+#
+# Usage (agent or human):
+#   1. Pick a profile below (or compose adopt + skip by hand).
+#   2. Copy each adoptable rule; rewrite globs for the target layout.
+#   3. Record the result in standards.lock.yaml (see standards.lock.yaml.example).
+#
+# LLM band timing: profiles list *which files to copy*; 101 still governs *when*
+# each 100+ claim binds inside those files.
+
+version: 1
+
+rules:
+  "001":
+    path: general/001-repository-rules.md
+    adoptable: true
+    summary: Repo-wide conventions (Explorer sort, shared settings)
+
+  "005":
+    path: backend/005-fastapi-python.md
+    adoptable: true
+    summary: FastAPI / Python — Ruff, async, Pydantic v2
+
+  "010":
+    path: frontend/010-frontend-scss.md
+    adoptable: true
+    summary: SCSS modules — nesting mirrors JSX
+
+  "015":
+    path: frontend/015-frontend-folder-organization.md
+    adoptable: true
+    summary: Frontend folder layout (monorepo / apps/web)
+
+  "020":
+    path: frontend/020-zustand.md
+    adoptable: true
+    summary: Zustand — selector-first stores
+
+  "025":
+    path: frontend/025-tanstack-query.md
+    adoptable: true
+    summary: TanStack Query — server state
+
+  "026":
+    path: frontend/026-optimistic-updates.md
+    adoptable: true
+    summary: Optimistic updates (Query cache)
+
+  "040":
+    path: frontend/040-keyboard-shortcuts.md
+    adoptable: true
+    summary: Keyboard shortcuts (useHotkeys)
+
+  "080":
+    path: frontend/080-unused-scss-classes.md
+    adoptable: true
+    summary: Orphan CSS-module class lint
+
+  "030":
+    path: tooling/030-lint-format-quality.md
+    adoptable: true
+    summary: ESLint + @stylistic, pack-don't-stack
+
+  "050":
+    path: tooling/050-anti-slop.md
+    adoptable: true
+    summary: Fallow anti-slop / changed-code gate
+
+  "060":
+    path: workflow/060-playwright-mcp-isolation.md
+    adoptable: false
+    summary: Shared Playwright MCP (machine operator setup)
+
+  "070":
+    path: workflow/070-tmux-shared-dev-server.md
+    adoptable: false
+    summary: tmux shared dev servers (machine operator setup)
+
+  "090":
+    path: workflow/090-slash-commands.md
+    adoptable: false
+    summary: Slash command roster and authoring
+
+  "091":
+    path: workflow/091-slash-commands-claude-vs-cursor.md
+    adoptable: false
+    summary: Claude vs Cursor command parity (generated)
+
+  "100":
+    path: llm/100-llm-call-pathway.md
+    adoptable: true
+    summary: LLM call pathway, validation, retries
+
+  "101":
+    path: llm/101-llm-adoption-order.md
+    adoptable: true
+    summary: Which 100+ rules bind on day one vs trigger-gated
+
+  "105":
+    path: llm/105-llm-trust-boundary.md
+    adoptable: true
+    summary: Trust boundary / confirmation seam
+
+  "110":
+    path: llm/110-llm-observability.md
+    adoptable: true
+    summary: LLM observability
+
+  "120":
+    path: llm/120-prompt-and-context-budget.md
+    adoptable: true
+    summary: Prompt and context budget
+
+  "125":
+    path: llm/125-agent-harness-extension.md
+    adoptable: true
+    summary: Agent harness extension points
+
+  "130":
+    path: llm/130-agent-job-contracts.md
+    adoptable: true
+    summary: Agent job contracts / envelopes
+
+  "140":
+    path: llm/140-llm-evals.md
+    adoptable: true
+    summary: LLM evals
+
+  "150":
+    path: llm/150-claude-skill-builder-guide.md
+    adoptable: false
+    summary: Anthropic skill-builder reference (read in hub; not an .mdc rule)
+
+profiles:
+  baseline:
+    description: Minimum for any repo — shared repo hygiene and formatting bar
+    adopt: ["001", "030"]
+
+  react-spa:
+    description: Client-rendered React/Vite (or similar) SPA with SCSS modules and Query
+    adopt: ["001", "010", "015", "020", "025", "026", "030", "040", "080"]
+
+  react-spa-flat:
+    description: Flat src/ React app (no apps/web monorepo) — skip folder-org standard
+    adopt: ["001", "010", "020", "025", "026", "030", "040", "080"]
+    skip: ["015"]
+
+  next-dashboard:
+    description: Next.js dashboard with client islands, Query hooks, SCSS modules
+    adopt: ["001", "010", "015", "020", "025", "026", "030", "040", "080"]
+    notes:
+      - "025 applies to client components and hooks/queries/; RSC pages may still use fetch() where the repo documents that choice"
+
+  next-rsc-fetch:
+    description: Next.js leaning on server-component fetch(), no TanStack Query
+    adopt: ["001", "010", "015", "020", "030", "080"]
+    skip: ["025", "026"]
+
+  python-api:
+    description: Python API service (FastAPI)
+    adopt: ["001", "005", "030"]
+
+  agent-backend:
+    description: Backend with model calls — structured-call subset; read 101 before expanding
+    adopt: ["001", "005", "030", "100", "101", "105", "110"]
+
+  agent-full:
+    description: Tool-loop agent service — copy full LLM band; 101 gates day-one binding
+    adopt: ["001", "005", "030", "100", "101", "105", "110", "120", "125", "130", "140"]
+
+  quality-gate:
+    description: Add when the repo runs Fallow or an equivalent changed-code audit in CI
+    adopt: ["050"]
+
+  operator-machine:
+    description: Personal dev machine — Playwright MCP, tmux, slash commands (hub reference only)
+    reference: ["060", "070", "090", "091"]

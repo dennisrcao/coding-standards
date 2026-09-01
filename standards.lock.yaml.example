@@ -1,0 +1,35 @@
+# Example lock file — copy to a target repo as standards.lock.yaml after adoption.
+#
+# Records which hub rules landed, at which hub commit, and any explicit skips or
+# local exceptions. Intended for drift checks (future script) and agent context —
+# not loaded by Cursor/Claude automatically today.
+#
+# hub_commit: run `git -C <path-to-docs-hub> rev-parse HEAD` when writing this file.
+
+version: 1
+
+hub: docs-hub/projects/coding-standards
+hub_commit: "<sha-at-adoption>"
+profile: react-spa # profile from standards-adoption.yaml, or null if hand-picked
+
+adopted:
+  - id: "001"
+    mdc: .cursor/rules/001-repository-rules.mdc
+  - id: "010"
+    mdc: .cursor/rules/010-frontend-scss.mdc
+  - id: "020"
+    mdc: .cursor/rules/020-zustand.mdc
+  - id: "030"
+    mdc: .cursor/rules/030-formatting.mdc
+
+skip:
+  - id: "025"
+    reason: "Server components use fetch(); Query not adopted"
+
+exceptions:
+  - id: "020"
+    reason: "persist allowed for debugPanelVisible only"
+
+reference:
+  - id: "060"
+    note: "Shared Playwright MCP — operator doc, not copied to .mdc"

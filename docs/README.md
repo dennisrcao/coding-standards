@@ -5,6 +5,30 @@
 Portable rules copied into target repos as `.cursor/rules/<NNN>-<slug>.mdc`. Repo root
 [`README.md`](../README.md) covers adoption; start LLM work at [`llm/101-llm-adoption-order.md`](llm/101-llm-adoption-order.md).
 
+## Adoption profiles
+
+**Machine-readable manifest:** [`../standards-adoption.yaml`](../standards-adoption.yaml)
+
+Pick a profile (or compose `adopt` / `skip` by hand), copy each **adoptable** rule to the target
+repo, rewrite globs, then record what landed in
+[`standards.lock.yaml`](../standards.lock.yaml.example) (copy the example into the target repo).
+
+| Profile | Adopt (rule IDs) | Notes |
+|---|---|---|
+| `baseline` | 001, 030 | Any repo |
+| `react-spa` | 001, 010, 015, 020, 025, 026, 030, 040, 080 | Vite/CRA-style SPA |
+| `react-spa-flat` | 001, 010, 020, 025, 026, 030, 040, 080 | Flat `src/` — skips 015 |
+| `next-dashboard` | same as `react-spa` | Client Query + RSC fetch where documented |
+| `next-rsc-fetch` | 001, 010, 015, 020, 030, 080 | No Query — skips 025, 026 |
+| `python-api` | 001, 005, 030 | FastAPI backend |
+| `agent-backend` | 001, 005, 030, 100, 101, 105, 110 | Model calls; read 101 first |
+| `agent-full` | + 120, 125, 130, 140 | Full LLM band; 101 gates day-one binding |
+| `quality-gate` | 050 | Add when Fallow / changed-code CI exists |
+| `operator-machine` | *(reference only)* 060, 070, 090, 091 | Machine setup — not `.mdc` rules |
+
+Rule IDs are the filename prefix (`020` → `docs/frontend/020-zustand.md`). Workflow docs and
+`150` are **reference-only** in the manifest — read from the hub, do not copy to `.cursor/rules/`.
+
 ## General
 
 | Doc | Topic |
@@ -59,4 +83,4 @@ Read [`101-llm-adoption-order.md`](llm/101-llm-adoption-order.md) first — not 
 | [125-agent-harness-extension.md](llm/125-agent-harness-extension.md) | Agent harness extension |
 | [130-agent-job-contracts.md](llm/130-agent-job-contracts.md) | Job contracts |
 | [140-llm-evals.md](llm/140-llm-evals.md) | Evals |
-| [claude-skill-builder-guide.md](llm/claude-skill-builder-guide.md) | Skill builder reference |
+| [150-claude-skill-builder-guide.md](llm/150-claude-skill-builder-guide.md) | Skill builder reference *(not adoptable)* |
