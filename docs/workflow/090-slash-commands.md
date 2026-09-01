@@ -75,7 +75,44 @@ goes to **production**. Neither one can be talked into doing the other's job.
 
 `/ask` and `/CROSSCHECK` are a pair: `/ask` gets the critique, `/CROSSCHECK` refuses to trust it.
 That split exists because an LLM critique reads as authoritative and is frequently wrong about the
-codebase — see `050-anti-slop.md`.
+codebase — see [`050-anti-slop.md`](../tooling/050-anti-slop.md).
+
+## Planned: `/argue` (not shipped)
+
+Design approved 2026-08-27; **not implemented**. Live pair remains `/ask` + `/CROSSCHECK`.
+
+`/argue` replaces both with one **bounded two-round** loop: opponent objects → we verify every
+claim against real code → rebuttal with `file:line` evidence → opponent concedes or
+counter-examples. At most two opponent CLI calls. Plan markdown only — no code edits, no
+commit/push.
+
+Every objection ends in one of five states — never ambiguous:
+
+| Verdict | Meaning |
+|---|---|
+| **CONFIRMED** | Verified true; plan is wrong or incomplete here |
+| **REFUTED** | Verified false, with evidence that kills it |
+| **MISREAD** | True of other code / another plan |
+| **UNVERIFIABLE** | Product or design call — name whose |
+| **OPEN** | Not closed by evidence from either side |
+
+Evidence rule: an objection may only leave the board via `file:line`, real command output, or a
+commit SHA. Anything still OPEN / UNVERIFIABLE is written into the plan under
+`## ⚠ Unresolved after /argue` and blocks on the user.
+
+**When shipped — file layout**
+
+| Path | Action |
+|---|---|
+| `commands/shared/argue-protocol.md` | **new** — engine (rounds, verdicts, report, plan edits); **not** a slash command, not symlinked |
+| `commands/claude/argue.md` / `commands/cursor/argue.md` | **new** — thin wrappers; each names the *other* agent's binary |
+| `commands/claude/ask.md`, `commands/cursor/ask.md`, `commands/shared/CROSSCHECK.md` | **delete** |
+
+Also update `scripts/link-slash-commands.sh` and `scripts/build-slash-command-doc.py` (they hardcode
+ask/CROSSCHECK today), then regenerate this companion doc (`091`).
+
+Verify-only mode (pasted critique / screenshot) preserves today's `/CROSSCHECK` one-way use case
+with no rebuttal channel.
 
 ## Where the house rules they enforce actually live
 

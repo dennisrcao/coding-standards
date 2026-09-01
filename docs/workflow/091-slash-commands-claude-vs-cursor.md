@@ -45,6 +45,11 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 | `/docs-update` | `~/.claude/commands/docs-update.md` — 207 lines | — none — | Claude only |
 | `/update-markdown` | `~/.claude/commands/update-markdown.md` — 94 lines | — none — | Claude only |
 
+**Planned:** `/argue` is the approved successor to the `/ask` + `/CROSSCHECK` split (one bounded
+two-round loop; thin per-agent wrappers + shared protocol). Not shipped — see
+[090-slash-commands.md](090-slash-commands.md) → *Planned: `/argue`*. Live roster above is still
+authoritative.
+
 ## `/close-out` lands the work — in either agent
 
 `/close-out` means one thing now: **I have signed off on this behavior, land it.** Commit what is
@@ -84,7 +89,7 @@ opinion. Nothing errors. Two files make that impossible.
 
 `/ask` and `/CROSSCHECK` remain a **pair**: `/ask` fetches the critique, `/CROSSCHECK` refuses to
 trust it. That split exists because an LLM critique reads as authoritative and is frequently wrong
-about the codebase — see [050-anti-slop.md](050-anti-slop.md).
+about the codebase — see [050-anti-slop.md](../tooling/050-anti-slop.md).
 
 ## How each agent loads them
 

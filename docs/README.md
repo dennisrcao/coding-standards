@@ -26,6 +26,7 @@ Portable rules copied into target repos as `.cursor/rules/<NNN>-<slug>.mdc`. Rep
 | [020-zustand.md](frontend/020-zustand.md) | Zustand — selector-first stores |
 | [025-tanstack-query.md](frontend/025-tanstack-query.md) | TanStack Query — server state |
 | [026-optimistic-updates.md](frontend/026-optimistic-updates.md) | Optimistic updates |
+| [040-keyboard-shortcuts.md](frontend/040-keyboard-shortcuts.md) | Keyboard shortcuts (`useHotkeys`) |
 | [080-unused-scss-classes.md](frontend/080-unused-scss-classes.md) | Orphan CSS-module class lint |
 
 ## Tooling & quality
@@ -33,17 +34,16 @@ Portable rules copied into target repos as `.cursor/rules/<NNN>-<slug>.mdc`. Rep
 | Doc | Topic |
 |---|---|
 | [030-lint-format-quality.md](tooling/030-lint-format-quality.md) | ESLint + @stylistic, pack-don't-stack, Fallow |
+| [050-anti-slop.md](tooling/050-anti-slop.md) | Fallow anti-slop / PR gate |
 
-## Process & environment
+## Workflow (operator / agent machine)
 
 | Doc | Topic |
 |---|---|
-| [040-keyboard-shortcuts.md](process/040-keyboard-shortcuts.md) | Keyboard shortcuts |
-| [050-anti-slop.md](process/050-anti-slop.md) | Fallow anti-slop / PR gate |
-| [060-playwright-mcp-isolation.md](process/060-playwright-mcp-isolation.md) | Shared Playwright MCP |
-| [070-tmux-shared-dev-server.md](process/070-tmux-shared-dev-server.md) | tmux dev servers |
-| [090-slash-commands.md](process/090-slash-commands.md) | Slash command roster |
-| [091-slash-commands-claude-vs-cursor.md](process/091-slash-commands-claude-vs-cursor.md) | Claude vs Cursor commands |
+| [060-playwright-mcp-isolation.md](workflow/060-playwright-mcp-isolation.md) | Shared Playwright MCP |
+| [070-tmux-shared-dev-server.md](workflow/070-tmux-shared-dev-server.md) | tmux dev servers |
+| [090-slash-commands.md](workflow/090-slash-commands.md) | Slash command roster |
+| [091-slash-commands-claude-vs-cursor.md](workflow/091-slash-commands-claude-vs-cursor.md) | Claude vs Cursor commands |
 
 ## LLM / agents
 
@@ -60,9 +60,3 @@ Read [`101-llm-adoption-order.md`](llm/101-llm-adoption-order.md) first — not 
 | [130-agent-job-contracts.md](llm/130-agent-job-contracts.md) | Job contracts |
 | [140-llm-evals.md](llm/140-llm-evals.md) | Evals |
 | [claude-skill-builder-guide.md](llm/claude-skill-builder-guide.md) | Skill builder reference |
-
-## Development (WIP)
-
-| Doc | Topic |
-|---|---|
-| [2026-08-27-argue-command-design.md](development/2026-08-27-argue-command-design.md) | `/argue` command design |

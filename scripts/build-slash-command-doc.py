@@ -4,7 +4,7 @@ import pathlib
 
 HOME = pathlib.Path.home()
 OUT = pathlib.Path('~/coding-standards/docs'
-                   '/091-slash-commands-claude-vs-cursor.md')
+                   '/workflow/091-slash-commands-claude-vs-cursor.md')
 
 # Shared commands are read from the Claude side; the Cursor path is the same file
 # via symlink, so reading either gives identical bytes.
@@ -115,7 +115,7 @@ opinion. Nothing errors. Two files make that impossible.
 
 `/ask` and `/CROSSCHECK` remain a **pair**: `/ask` fetches the critique, `/CROSSCHECK` refuses to
 trust it. That split exists because an LLM critique reads as authoritative and is frequently wrong
-about the codebase — see [050-anti-slop.md](050-anti-slop.md).
+about the codebase — see [050-anti-slop.md](../tooling/050-anti-slop.md).
 
 ## How each agent loads them
 
