@@ -10,10 +10,10 @@ alwaysApply: false
 
 App-level (global) keyboard shortcuts go through **one** small `useHotkeys` hook,
 not through a `window.addEventListener("keydown", …)` written by hand in each
-component. Modeled on the `HotKeys` registry in
-`App-Repos/collaborative-learning` (`src/utilities/hot-keys.ts`).
+component. The pattern is a registry table plus a hook that canonicalizes `cmd` → platform client/ctrl.
 
-Reference implementation lives in `docs-hub/site/src/lib/hot-keys.ts`.
+When adopting this standard, copy the canonical hook at the bottom of this file into
+`src/hooks/use-hotkeys.ts` (or `src/utilities/hot-keys.ts`) in the target repo.
 
 ## Do
 
@@ -91,7 +91,6 @@ useShortcuts({
 - **Narrow the wrapper, not the hook.** `useHotkeys` and `HotkeyMap` keep their
   generic signatures so this file stays copy-pasteable between repos; each app's
   own combos are its own type.
-- Reference: `docs-hub/site/src/lib/hot-keys.ts`.
 
 ## Element-scoped keys are NOT hotkeys
 

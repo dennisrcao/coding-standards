@@ -6,8 +6,10 @@ alwaysApply: false
 
 # Slash commands across two agents (Claude Code ↔ Cursor)
 
-**Status:** Reference. Companion to [090-slash-commands.md](090-slash-commands.md), which is the
-Claude-side roster; this one is the **two-environment** view.
+> **Reference only — operator / machine-local.** Companion to [090-slash-commands.md](090-slash-commands.md).
+
+**Status:** Reference. This file is the **two-environment** view; [090-slash-commands.md](090-slash-commands.md) is the
+Claude-side roster.
 
 Both agents are used on the same repos, on the same day, often on the same branch. **Every command
 that exists on both sides is now literally one file**, symlinked into both agents — with a single

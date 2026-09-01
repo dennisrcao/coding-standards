@@ -77,23 +77,33 @@ blog — so "the blog wins" holds, once you read the right post.)
 - **Disable `refetchOnMount` / `refetchOnWindowFocus` to "reduce requests."** This is the most common
   misuse — it turns off the synchronization mechanism and you ship stale UIs. **Raise `staleTime`
   instead**; it cuts requests while keeping the safety net.
-- **Wrap every query in a custom hook.** The escalation is predictable and ends in broken types:
-  `useThing(id)` → `useThing(id, staleTime?)` → `useThing(id, options?: Partial<UseQueryOptions>)`,
-  at which point `data` becomes `unknown`. *"The best abstractions are not configurable."* Spread
-  overrides at the call site: `useQuery({ ...invoiceOptions(1), select: (i) => i.createdAt })`.
-  Custom hooks remain correct when they share **logic** (reading router/context, combining queries) —
-  not when they merely share **configuration**.
-  *Note:* the 2020 *Practical React Query* post says to create a custom hook "even if it's only for
-  wrapping one `useQuery` call", and carries no update notice. **The later posts reverse that
-  default** — *The Query Options API* and *Creating Query Abstractions* put `queryOptions()` first.
-  We follow the later guidance.
-  *Exception — real-time subscriptions & domain encapsulation:* Custom hooks under `hooks/queries/`
-  are the expected pattern when a query hook manages active subscriptions (e.g. Supabase Realtime
-  channels invalidating on `postgres_changes`, WebSocket events), combines query state with
-  mutations or derived domain lookups (e.g. parsed `Set` key sets), or encapsulates device/kiosk
-  polling intervals. Forcing bare `queryOptions` onto subscription-managing hooks pushes connection
-  lifecycle boilerplate onto consuming components.
+- **Wrap every query in a custom hook** — *except subscription/mutation encapsulation; see
+  **Exception — custom Query hooks** below.*
 - **Server state cached in Zustand** — no `loadSeq` tokens, no manual sequence guards.
+
+### Exception — custom Query hooks
+
+Don't wrap every query in a custom hook. The escalation is predictable and ends in broken types:
+`useThing(id)` → `useThing(id, staleTime?)` → `useThing(id, options?: Partial<UseQueryOptions>)`,
+at which point `data` becomes `unknown`. *"The best abstractions are not configurable."* Spread
+overrides at the call site: `useQuery({ ...invoiceOptions(1), select: (i) => i.createdAt })`.
+Custom hooks remain correct when they share **logic** (reading router/context, combining queries) —
+not when they merely share **configuration**.
+
+*Note:* the 2020 *Practical React Query* post says to create a custom hook "even if it's only for
+wrapping one `useQuery` call", and carries no update notice. **The later posts reverse that
+default** — *The Query Options API* and *Creating Query Abstractions* put `queryOptions()` first.
+We follow the later guidance.
+
+Use a custom hook when it manages **active side effects** — Realtime channels invalidating on
+`postgres_changes`, WebSocket events, kiosk polling intervals — or combines query state with
+mutations or derived domain lookups. Forcing bare `queryOptions` onto subscription-managing hooks
+pushes connection lifecycle boilerplate onto consuming components.
+
+**File placement** defers to [`015-frontend-folder-organization.md`](015-frontend-folder-organization.md):
+one feature → `components/<feature>/hooks/`; shared across features → `hooks/queries/`. Factories
+stay in `api/<resource>/queries.ts`, never in either hooks folder.
+
 - **A hand-rolled TTL cache or in-flight dedup in front of a query.** Both are built in; two cache
   layers means two things to invalidate.
 - **Prop-drill query data to avoid "duplicate fetches."** Any number of components may call the same
@@ -169,6 +179,17 @@ new QueryClient({
 Fine-grained mutation→query maps are the tempting anti-pattern: every new related resource means
 auditing every mutation callback. Reach for scoping (`mutationKey`, or declarative `meta.invalidates`)
 only when you have a measured reason.
+
+### When to narrow invalidation
+
+Keep the global default for greenfield apps and small surfaces — it removes the "forgot to invalidate
+X" bug class. **Narrow** when you have evidence of over-invalidation: high-traffic list keys refetching
+on unrelated mutations, measurable UI jank, or API rate limits. Then:
+
+- Scope with `queryKey` prefixes or `meta.invalidates` on the mutation, not per-callback maps that
+  drift from the factory.
+- Record the divergence in the repo's `standards.lock.yaml` under `exceptions` (see
+  [`standards.lock.yaml.example`](../../standards.lock.yaml.example)).
 
 ⚠️ `invalidateQueries` defaults to `cancelRefetch: true`, which cancels in-flight requests. Pass
 `false` to piggyback on a refetch already running.

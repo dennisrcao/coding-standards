@@ -6,6 +6,9 @@ alwaysApply: false
 
 # Slash commands (personal, machine-global)
 
+> **Reference only — operator / machine-local.** Tracked in this hub for restore-after-wipe; not copied
+> to target repos as adoptable `.mdc` rules.
+
 These are **not** repo commands. They are reachable from `~/.claude/commands/*.md` on each machine,
 so they are available in **every** repo — that is the whole point of them.
 

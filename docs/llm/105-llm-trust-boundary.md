@@ -28,13 +28,13 @@ band do **not** have this covered, and the gap is what prompted the document.
 
 ## The exposure this was written from
 
-`claw-calendar/plugins/sigma-intent` classifies a Telegram or webchat message and then **acts on
-it** — `todoAdd`, `todoDone`, `calendarAdd`, `musicDownload`, `expenseAdd`, a dashboard view
-switch — dispatched straight from the classified intent:
+One cited intent plugin classifies a chat message and then **acts on it** — inserting todos,
+marking them done, creating calendar events, switching dashboard views — dispatched straight from
+the classified intent:
 
 ```ts
 switch (classified.intent) {
-  case "todo_add":  return todoAdd(classified.data, ctx);
+  case "todo_add":     return todoAdd(classified.data, ctx);
   case "calendar_add": return calendarAdd(classified.data, ctx);
   // …
 }

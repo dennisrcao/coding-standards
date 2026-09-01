@@ -7,6 +7,9 @@ alwaysApply: false
 
 # Playwright MCP — one shared browser for the workspace
 
+> **Reference only — operator / machine-local.** Not copied to target repos as a `.mdc` rule. Paths
+> and repo names describe one developer's multi-root workspace, not portable policy.
+
 ## The rule
 
 There is **one** Playwright MCP server for the entire machine. Every repo's

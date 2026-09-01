@@ -16,12 +16,11 @@ that kept coming up anyway, so it lives here rather than in a blog post.
 because that promise is easy to make in one place and forget in another — and a half-kept promise
 reads to the user as a bug, not as latency.
 
-The motivating incident is `claw-calendar` PR #94 (2026-08-31), which shipped drag-a-todo-onto-the-
-calendar. It optimistically updated the todo cache and not the calendar cache, and it did so for
-`schedule` but not for `unschedule`. Typecheck, 411 tests and lint were green the entire time. The
-owner's report was *"it didn't stick"* — the event had in fact been created in Google on the first
-try, and the second drag returned `409 already scheduled`. Nothing was broken except what the screen
-said.
+The motivating failure mode: a drag-to-schedule mutation optimistically updated the todo cache but
+not the calendar cache, and did so for `schedule` but not for `unschedule`. Typecheck, unit tests, and
+lint were green. The server had already created the event on the first try; the second attempt
+returned `409 already scheduled`. Nothing was broken except what the screen said — the card updated
+instantly and the calendar grid lagged a full refetch behind.
 
 ## The four rules
 
@@ -32,35 +31,33 @@ an optimistic write to **both** — or the mutation is only half-optimistic and 
 broken.
 
 ```ts
-// WRONG — the shape that shipped in PR #94
+// WRONG — optimistic write to one cache, invalidate two
 onSettled: () => {
   queryClient.invalidateQueries({ queryKey: todoKeys.all });
   queryClient.invalidateQueries({ queryKey: calendarKeys.events() }); // ← never written optimistically
 }
 ```
 
-The card updated instantly and the calendar grid took a full refetch to catch up, so the event
-appeared about a second after the drop. **Grep your own `invalidateQueries` calls against your
-`setQueryData` calls. They should name the same keys.**
+The card updated instantly and the calendar grid took a full refetch to catch up. **Grep your own
+`invalidateQueries` calls against your `setQueryData` calls. They should name the same keys.**
 
-`farren-base` (`coach-workout-plans/cache/mutations/useSessionMutation.ts`) is the reference here: a
-session move writes the session cache *and* the affected week caches in the same `onMutate`, because
-a session that exists in two week arrays — or none — is a visible ghost.
+A session-move mutation that writes the session cache *and* every affected week cache in the same
+`onMutate` is the reference shape — a session that exists in two week arrays (or none) is a visible
+ghost if you only touch one cache.
 
 ### 2. The inverse operation is part of the same feature
 
 If you make `schedule` optimistic, `unschedule` is not a follow-up ticket. Users read the pair as one
 interaction, and a fast create next to a slow delete feels more broken than two slow operations.
 
-`farren-base` treats this as a first-class concept rather than discipline: `utils/buildReverseMutation.ts`
-constructs the reversing entry from the same snapshot the forward mutation captured, so undo restores
-the cache *and* fires the reverse API call. You do not need that machinery on a small surface, but you
-do need both directions written at the same time.
+Some codebases treat reverse mutations as first-class: construct the reversing entry from the same
+snapshot the forward mutation captured, so undo restores the cache *and* fires the reverse API call.
+You do not need that machinery on a small surface, but you do need both directions written at the
+same time.
 
 ### 3. Snapshot, mutate, roll back — in that order
 
-The canonical shape, as implemented in `collaborative-learning`
-(`src/hooks/document-comment-hooks.ts`):
+The canonical shape:
 
 ```ts
 onMutate: async (vars) => {
@@ -83,19 +80,17 @@ Three things that are easy to skip and all matter:
   is not the same thing.
 - **`onSettled`, not `onSuccess`.** Reconcile with the server on both outcomes.
 
-**Placeholder ids must be unique and identifiable** — `` `pending-${uniqueId()}` ``, the
-`collaborative-learning` form. A bare literal like `"pending"` (also PR #94) collides the moment two
-optimistic rows exist at once and cannot be matched to its own response.
+**Placeholder ids must be unique and identifiable** — `` `pending-${uniqueId()}` ``. A bare literal
+like `"pending"` collides the moment two optimistic rows exist at once and cannot be matched to its
+own response.
 
 ### 4. Test the rollback and the cache shape, not the happy path
 
-The happy path is the one that already works. Both reference repos test the other two:
+The happy path is the one that already works. Test the error path and the cross-cache invariants:
 
-- `collaborative-learning/src/hooks/document-comment-hooks.test.ts` — *"should roll back optimistic
-  update on error"*, asserting two `setQueryData` calls and inspecting the second.
-- `farren-base/.../sessionOptimisticUpdates.test.ts` — invariants rather than outcomes: *"session
-  appears in exactly one week (no ghost)"*, *"updates session in place, no duplication"*, *"removes
-  source week from cache when it becomes empty"*.
+- *Roll back optimistic update on error* — assert two `setQueryData` calls and inspect the second.
+- Invariant-style tests: *session appears in exactly one week (no ghost)*, *updates in place, no
+  duplication*, *removes source week from cache when it becomes empty*.
 
 That second style is the one worth copying. **Assert the shape the cache must always have**, because
 the multi-cache bug in Rule 1 is invisible to a test that only checks the row you touched.
@@ -110,8 +105,8 @@ Optimism is a claim that you can predict the server. Do not make it when you can
   the user to trust a state you may have to take back.
 - **When the operation is already fast.** An optimistic path is real code with a real rollback branch.
   Under roughly 200ms it buys nothing and adds a failure mode.
-- **Anything with a server-side guard you are not replicating.** PR #94's schedule route rejects an
-  already-scheduled todo with a `409`; an optimistic path that does not know that rule shows success
+- **Anything with a server-side guard you are not replicating.** A schedule route that rejects an
+  already-scheduled item with `409`; an optimistic path that does not know that rule shows success
   and then silently reverts.
 
 ## Before you call it done
@@ -122,14 +117,13 @@ Optimism is a claim that you can predict the server. Do not make it when you can
 - [ ] Placeholder ids are unique and prefixed, not literals.
 - [ ] A test forces the error path and asserts the rollback.
 - [ ] A test asserts the cache-shape invariant across every cache you touched.
-- [ ] You loaded the page. Every failure in the motivating incident passed typecheck, lint and the
-      full unit suite while the feature was broken on screen.
+- [ ] You loaded the page. The motivating failure passed typecheck, lint and the full unit suite while
+      the feature was broken on screen.
 
-## Sources
+## Cited implementations
 
-- `collaborative-learning` (`~/Desktop/Research-Repos/collaborative-learning`) — the minimal correct
-  shape, and the rollback test.
-- `farren-base` (NAS `SOFTWARE/00_Code-Backups/farren-base/.../coach-workout-plans/cache/mutations/`)
-  — multi-cache consistency, reverse mutations as a first-class concept, invariant-style tests.
-- `claw-calendar` PR #94 — every anti-pattern named above, committed by someone who knew better in
-  the abstract.
+Ground-truth repos that shaped this standard — not required reading for adoption:
+
+- A minimal document-comment mutation hook with rollback test (single-cache shape).
+- A multi-week session planner with multi-cache `onMutate`, reverse mutations, and invariant tests.
+- A calendar scheduling PR that shipped every anti-pattern named above despite green CI.

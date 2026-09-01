@@ -8,7 +8,9 @@ alwaysApply: false
 
 # Frontend folder organization & hook placement
 
-This standard establishes the canonical directory structure and module scoping rules for frontend SPA applications across our repositories (Acme, Studio, CLUE / collaborative-learning, Storyboard).
+This standard establishes the canonical directory structure and module scoping rules for React/Vite
+and Next.js client trees. **Lowest caller scope** decides hook placement; **technical role**
+decides where server-state *factories* live — see §3 and [`025-tanstack-query.md`](025-tanstack-query.md).
 
 ---
 
@@ -51,10 +53,16 @@ src/
 │   ├── auth-store.ts         # Authentication & tenancy
 │   └── <domain>-store.ts     # Domain-scoped slices
 │
-├── hooks/                    # True cross-cutting, app-wide React hooks only
+├── hooks/                    # Cross-cutting React hooks (see §3 — not every hook belongs here)
+│   ├── queries/              # Shared Query hooks with subscriptions/polling (2+ features)
 │   ├── use-theme.ts
 │   ├── use-network-status.ts
 │   └── use-keyboard-shortcuts.ts
+│
+├── api/                      # Server-state factories (TanStack Query) — not React hooks
+│   └── <resource>/
+│       ├── queries.ts        # queryOptions() per resource
+│       └── params.ts         # Pure URL/param builders (unit-tested, no React)
 │
 ├── lib/                      # Infrastructure, API clients, DB connectors, auth, telemetry
 │   ├── api-client.ts         # REST / GraphQL client
@@ -97,25 +105,36 @@ Hooks must be organized by **scope**, not dumped into a single flat directory:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 1. Feature-Private Hooks (1 caller or local to 1 feature)   │
-│    └── Colocated inside that feature (or feature/hooks/)    │
+│    └── Colocate or feature/hooks/                           │
 ├─────────────────────────────────────────────────────────────┤
 │ 2. Area-Shared / Shell Composer Hooks                       │
 │    └── components/_shell/hooks/ or parent feature hooks/    │
 ├─────────────────────────────────────────────────────────────┤
-│ 3. App-Wide Cross-Cutting Hooks (Crosses 2+ top domains)   │
-│    └── src/hooks/                                           │
+│ 3. Shared server-state hooks (Query + side effects)         │
+│    └── hooks/queries/ when 2+ features consume it;          │
+│        else stay in feature/hooks/ (lowest scope wins)      │
 ├─────────────────────────────────────────────────────────────┤
-│ 4. Store Selector & Action Hooks                            │
+│ 4. App-Wide Cross-Cutting Hooks (2+ unrelated top domains)  │
+│    └── src/hooks/ — UI/session only, not Query factories    │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Store Selector & Action Hooks                            │
 │    └── Colocated in the Zustand store file (src/stores/*)   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+**TanStack Query is not a hook file by default.** `queryOptions()` factories live under
+`api/<resource>/queries.ts` (or `lib/queries/` in a flat tree). Call sites use `useQuery({ ...factory })`
+directly. Custom hooks are only for shared *logic* — Realtime invalidation, kiosk polling, reading
+router/context — per [`025-tanstack-query.md`](025-tanstack-query.md). Those hooks follow the tiers
+above: one feature → `components/<feature>/hooks/`; shared across features → `hooks/queries/`.
+
 ### The Promotion Rules:
-1. **Single-caller hook:** Colocate directly next to the component (`components/session/use-shot-scroll.ts`).
-2. **Feature Area (3+ hooks in an area):** Create a dedicated `<area>/hooks/` subfolder (e.g. `components/retouch/hooks/`).
-3. **Shell Composer:** Shell orchestration hooks called only by shell layout components (`studio-shell.tsx` / `content.tsx`) live in `components/_shell/hooks/`.
-4. **App-Wide Promotion:** Move to `src/hooks/` **only** when a hook is consumed across multiple unrelated top-level domains.
-5. **Store Selectors:** Always keep named selectors and action hooks in the store file itself (`src/stores/*-store.ts`).
+1. **Single-caller hook:** Colocate directly next to the component (`components/invoices/use-line-scroll.ts`).
+2. **Feature Area (3+ hooks in an area):** Create a dedicated `<area>/hooks/` subfolder (e.g. `components/catalog/hooks/`).
+3. **Shell Composer:** Shell orchestration hooks called only by shell layout components (`app-shell.tsx` / `content.tsx`) live in `components/_shell/hooks/`.
+4. **Shared Query hooks:** When a subscription or polling hook serves **two or more** top-level features, promote it to `hooks/queries/`. If only one feature uses it, keep it in that feature's `hooks/` folder.
+5. **App-Wide Promotion:** Move to `src/hooks/` **only** for cross-cutting **UI** hooks consumed across unrelated domains — not for Query factories or resource-specific fetch logic.
+6. **Store Selectors:** Always keep named selectors and action hooks in the store file itself (`src/stores/*-store.ts`).
 
 ---
 
@@ -128,7 +147,7 @@ A clear separation prevents infrastructural dependencies from tangling with pure
 | **Purity** | 100% pure, stateless functions | May hold state, singletons, network connections |
 | **Dependencies** | Zero external APIs, zero DOM state | Talks to APIs, DBs, WebSockets, LocalStorage |
 | **Testing** | Simple unit tests (`input -> output`) | Mocked network/integration tests |
-| **Examples** | `string-utils.ts`, `math-utils.ts`, `url-utils.ts`, `color-utils.ts` | `am-api.ts`, `auth-client.ts`, `persist-utils.ts`, `ws-client.ts` |
+| **Examples** | `string-utils.ts`, `math-utils.ts`, `url-utils.ts`, `color-utils.ts` | `api-client.ts`, `auth-client.ts`, `persist-utils.ts`, `ws-client.ts` |
 
 ---
 

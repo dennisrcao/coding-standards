@@ -14,14 +14,14 @@ alwaysApply: false
 One law, applied five ways: **every token in context is paid for on every call.** Not once — every
 call, for the life of the conversation, multiplied by every user.
 
-Two independent codebases arrived at the same sentence. hermes, on tools: *"every model tool we add
-is sent on every API call, so the bar for a new core tool is high."* storyboard-agent, on prose, in
-`signatures.py`: *"Every word in a signature docstring ships into the LLM prompt on every call."*
+Two independent codebases arrived at the same sentence — one on tool registries (*"every model tool
+we add is sent on every API call, so the bar for a new core tool is high"*), one on signature
+docstrings (*"Every word in a signature docstring ships into the LLM prompt on every call."*).
 
 **Cited implementations:** `storyboard-agent/packages/agents/agents/signatures.py` (shared fragments
 as constants), `app-monorepo/apps/py-lambdas/shared_layer/shared/prompts.py` +
 `shared/schema/*.yaml` (fragments as data), `hermes-agent` (`tools/registry.py` bounding, schema
-description rules, cache policy).
+description rules, cache policy). Repo names are grounding only — the rules below are portable.
 
 | This file is… | Precedence |
 |---|---|
@@ -52,9 +52,9 @@ Three substrates are all correct — pick by what the surrounding code already i
 
 | Substrate | Example | Best when |
 |---|---|---|
-| Module constants composed with f-strings | `signatures.py`: `_TVC_ROLE`, `_SHOT_VOCAB`, `_NO_BRAND_NAMES` | prompts are typed alongside code and change with it |
-| Fragment files loaded and assembled | Acme `shared/schema/{roles,context,instructions,output_format}.yaml` → `prompts.py` | prompts are edited by more people than the code, or shipped separately |
-| One prompt constant per call site | `sigma-intent`'s `CLASSIFIER_PROMPT` | there is genuinely one prompt |
+| Module constants composed with f-strings | `_ROLE`, `_OUTPUT_FORMAT`, `_DOMAIN_VOCAB` in `signatures.py` | prompts are typed alongside code and change with it |
+| Fragment files loaded and assembled | `schema/{roles,context,instructions,output_format}.yaml` → assembler | prompts are edited by more people than the code, or shipped separately |
+| One prompt constant per call site | `CLASSIFIER_PROMPT` in a plugin | there is genuinely one prompt |
 
 What is banned is the same sentence appearing in three prompts. When a rule changes, it changes
 once. Both real implementations converge on the same four categories — **role, context,
@@ -72,7 +72,7 @@ The description is prompt surface, and it is the model's only documentation. The
 length cap:
 
 > the description teaches behavior, not structure the params already define.
-> — hermes `tools/todo_tool.py`, inline
+> — one cited todo tool, inline
 
 That tool's own description runs several hundred characters and spends them on things the schema
 cannot express: when to reach for it, that list order is priority, that only one item may be
@@ -112,8 +112,8 @@ _MAX_TOOL_ERROR_CHARS = 2048
 _MAX_LOGGED_ERROR_CHARS = 8192   # logs keep more than the model sees
 ```
 
-hermes applies this at dispatch precisely so *"no registered tool can return an unbounded error body
-that stacks across retries."* The asymmetry is deliberate: the log is for a human debugging once;
+One cited agent harness applies this at dispatch precisely so *"no registered tool can return an
+unbounded error body that stacks across retries."* The asymmetry is deliberate: the log is for a human debugging once;
 the context is paid on every subsequent turn. The logging half of this is
 [`110`](110-llm-observability.md).
 
@@ -126,8 +126,8 @@ every turn and anything that mutates it multiplies cost. The rules:
   Compression is the one sanctioned exception.
 - A command that mutates system-prompt state (installing a skill, toggling a tool) defaults to
   **deferred invalidation** — it takes effect next session — with an opt-in flag for "now."
-- Inject session-scoped additions as a **user message**, not by editing the system prompt. hermes
-  routes skill slash-commands this way for exactly this reason.
+- Inject session-scoped additions as a **user message**, not by editing the system prompt. One cited
+  harness routes skill slash-commands this way for exactly this reason.
 - Keep role alternation clean: no two same-role messages in a row.
 
 **Scope — two shapes, both real.** These are properties of prefix-caching providers, chiefly the
@@ -136,11 +136,11 @@ that benefits, and assuming so is a mistake this file made in its first draft:
 
 - **Across turns** — a conversation reuses its prefix every turn. That is the list above.
 - **Across invocations** — a *stateless* agent reuses a cached prefix between runs, inside the
-  provider's cache TTL. Eight of Acme's Lambda agents mark their system prompt
-  `cache_control: {"type": "ephemeral"}` for exactly this reason: consecutive invocations inside the
-  window skip re-reading a large system prompt. The stability law is identical with a different
-  unit — **the cached block must be byte-identical between invocations**, so nothing interpolated
-  per request (a timestamp, a request id, the user's own input) may appear inside it.
+  provider's cache TTL. Serverless agents that mark their system prompt
+  `cache_control: {"type": "ephemeral"}` do so because consecutive invocations inside the window skip
+  re-reading a large system prompt. The stability law is identical with a different unit — **the
+  cached block must be byte-identical between invocations**, so nothing interpolated per request (a
+  timestamp, a request id, the user's own input) may appear inside it.
 
 What genuinely does not apply to a stateless agent is the *session* machinery — deferred
 invalidation, injecting additions as a user message, role alternation — all of which presume
@@ -153,7 +153,7 @@ that makes a stuck conversation unrecoverable.
 
 ## Canonical shape
 
-Fragments authored once, composed at the call site — Acme's `prompts.py`, reduced:
+Fragments authored once, composed at the call site — YAML fragment pipeline, reduced:
 
 ```python
 # shared/schema/roles.yaml, context.yaml, instructions.yaml, output_format.yaml
@@ -180,15 +180,16 @@ def get_bbox_detection_prompt(product_name: str) -> str:
     ])
 ```
 
-The same law in the other substrate — `signatures.py`, with the reason stated in the file:
+The same law in the other substrate — module constants in `signatures.py`, with the reason stated in
+the file:
 
 ```python
 # Every word in a signature docstring ships into the LLM prompt on every call.
 # Rules that apply to more than one signature live here so they are written
 # once and composed via f-strings into each signature's __doc__.
 
-_TVC_ROLE = "You are a storyboard director for TV commercials and short branded spots. …"
-_NO_BRAND_NAMES = "BRAND-NAME GUARD: never write a brand name as prose …"
+_ROLE = "You are a domain expert for …"
+_NO_PROPRIETARY_NAMES = "Never write a proprietary name as prose …"
 ```
 
 Both give one editing site per rule. Neither lets a change to "no brand names" reach three prompts

@@ -8,6 +8,9 @@ alwaysApply: false
 
 # Shared dev servers via named tmux sessions
 
+> **Reference only — operator / machine-local.** Session names and port tables below are one machine's
+> layout, not portable policy.
+
 A normal foreground `npm run dev` is **trapped** in the terminal of the one Claude
 Code instance that launched it. A second instance — different repo, different
 window, different cwd — can't see its logs, can't tell if it's already running,

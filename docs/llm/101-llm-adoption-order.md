@@ -23,7 +23,12 @@ consumer, an envelope with no queue, a confirmation seam on a pipeline that cann
 
 ## How to read this
 
-**You still copy whole files.** The library's adoption procedure copies a doc; step 4 already
+**You still copy whole files.** Adoption profiles in [`standards-adoption.yaml`](../standards-adoption.yaml)
+list *what to copy*; this file lists *what binds when* inside those copies. The two are not the same —
+a profile can include `130` in the copy set while this file keeps half of `130` trigger-gated until a
+queue exists.
+
+The library's adoption procedure copies a doc; step 4 already
 permits trimming a downstream copy to a narrow extract, but gives no guidance on which extract.
 That is this file's only job. It does **not** tell you to scissors a file, and it is not a licence
 to skip the parts you find inconvenient.

@@ -181,8 +181,8 @@ There are **three** kinds of state. Zustand owns two of them. **This table is th
   call, not a policy handed down here — see `025-tanstack-query.md`. Until a repo makes that call, a
   store-held fetch is tolerated as debt (below), not a violation.
 - **Reactive backend** (Convex, Firebase, Replicache) → its subscription hooks *are* the server-state
-  layer. Don't stack a query library on top, and don't mirror its data into a store. `~/Desktop/studio`
-  is the worked example: Convex `useQuery`/`useMutation`, no TanStack Query, no in-memory mirror.
+  layer. Don't stack a query library on top, and don't mirror its data into a store. A reactive-backend
+  SPA with `useQuery`/`useMutation` from that SDK and no TanStack Query is the worked shape.
 
 **Don't hand-roll a cache in Zustand** — no `loadSeq` tokens, no TTL maps in front of a fetch.
 Storing a fetched value in a store while a repo has no server-state layer is tolerated *as debt*.
@@ -197,7 +197,7 @@ A repo may diverge from a rule here **if it writes down which rule, and why, in 
 `AGENTS.md` / `CLAUDE.md`** — with a threshold for revisiting. Silent divergence is drift; explained
 divergence is a local decision.
 
-The worked example is Acme's `apps/studio/AGENTS.md`, which exports its store hooks and skips the
+The worked example is a repo whose `AGENTS.md` exports store hooks directly and skips the
 `actions` namespace, arguing that individually-selected actions already have stable identities at its
 current scale, and naming the condition that would change the answer. That is the right shape for an
 exception — and it is still an exception: this file states the upstream rule.
@@ -253,7 +253,7 @@ export const getMyStore = () => useMyStore.getState();            // non-React r
     anyway. *Deferred:* a house `staleTime` floor number in `025` — needs a real call, not a default.
 
 - **2026-08-29** — Added *The first-paint fallback*. Found by acting on a code review that flagged
-  four `getState()`-in-`useMemo` sites in Acme's `apps/studio` as violations of the Don't above:
+  four `getState()`-in-`useMemo` sites in one large SPA as violations of the Don't above:
   deleting them cost **35 tests across 4 files** against a 2997-pass baseline. The rule was right in
   general and wrong there, and this file gave a reader no way to tell the difference — it is strong
   on v5's `equalityFn` removal but never mentioned that v5 also moved the server snapshot to

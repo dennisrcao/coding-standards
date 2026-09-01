@@ -102,7 +102,7 @@ needs a label and a metric, not a re-roll.
 
 ## Retry: right taxonomy, wrong mechanism
 
-Acme's `gemini_retry.py` gets the taxonomy right and this file adopts it wholesale:
+One cited Python retry module gets the taxonomy right and this file adopts it wholesale:
 
 | Retryable | Not retryable |
 |---|---|
@@ -116,8 +116,8 @@ Retrying the right column just burns the caller's timeout.
 GEMINI_TRANSIENT_MARKERS = ("DEADLINE_EXCEEDED", "Deadline expired", "504", ...)
 ```
 
-This is the bug class hermes bans after ~10 fleet incidents (*"DO NOT infer process identity from
-argv substrings"*): a substring is not a type. A message containing `"504"` inside a URL, a
+This is the bug class one cited agent harness bans after repeated fleet incidents (*"DO NOT infer
+process identity from argv substrings"*): a substring is not a type. A message containing `"504"` inside a URL, a
 provider rewording its prose, or a wrapped exception all change the answer. **Classify on the
 structured signal** — the SDK's typed exception, `response.status`, an error `code` — and fall back
 to string matching only where a provider gives you nothing else, with that admission in a comment.
@@ -133,21 +133,21 @@ Any retried call with a side effect — an image generated, an event created, a 
 job enqueued — carries a caller-supplied key derived from the unit of work, and the sink dedupes on
 it. The retry and the key ship together or neither ships.
 
-Grounded in a live gap: Acme retries `generation_scene` through `gemini_with_retry`, and
-`grep -i idempoten` across `agent-contracts`, `shared_layer`, and every handler returns nothing. A
-504 on a call the model actually completed bills twice and can deliver twice. The envelope half of
-this rule is in [`130-agent-job-contracts.md`](130-agent-job-contracts.md).
+Grounded in a live gap: one production pipeline retries image-generation calls through a shared
+retry helper, and a repo-wide search for idempotency keys across handlers returns nothing. A 504 on a
+call the model actually completed bills twice and can deliver twice. The envelope half of this rule
+is in [`130-agent-job-contracts.md`](130-agent-job-contracts.md).
 
 ## Pins, knobs, and timeouts
 
-- **Pin the model; an alias that silently moves is a defect.** `sigma-intent`'s default proved this
+- **Pin the model; an alias that silently moves is a defect.** One cited plugin default proved this
   twice: it 404'd on a model that no longer existed, and the obvious fix (bump the tag) 403'd
   because every `:cloud` tag on that host requires a paid subscription. A default that ships must
   not assume a paid tier.
 - **One constant per knob in code, mirrored by any config schema, with a test asserting they
-  agree.** The drift test lives in [`140-llm-evals.md`](140-llm-evals.md). `sigma-intent`'s schema
-  said 5 s while its code said 15 s; the schema value was never materialized, so the mismatch was
-  invisible until every call aborted.
+  agree.** The drift test lives in [`140-llm-evals.md`](140-llm-evals.md). One cited schema said 5 s
+  while its code said 15 s; the schema value was never materialized, so the mismatch was invisible
+  until every call aborted.
 - **Derive timeouts from a recorded measurement and commit the derivation, not a comment.** A
   55 s-cold / 7 s-warm pair measured on one CPU-only host is not a portable default; copy it behind
   API Gateway's 29 s ceiling and the preflight *is* the outage. Name the platform ceiling that
@@ -158,11 +158,11 @@ this rule is in [`130-agent-job-contracts.md`](130-agent-job-contracts.md).
 
 ## Config plane — the rule most often over-generalized
 
-hermes bans new env vars for non-secret config: `.env` is for credentials, behavior goes in
-`config.yaml`. **That is a house narrowing of a local CLI, not a portable rule.** Acme's
-`shared/config.py` states the opposite for its platform — *"On deployed Lambda: reads environment
-variables set by the SAM template"* — and there env **is** the config plane; forcing a code constant
-would mean a deploy to change a staging timeout.
+One cited local CLI bans new env vars for non-secret config: `.env` is for credentials, behavior goes
+in `config.yaml`. **That is a house narrowing of a local CLI, not a portable rule.** One cited
+serverless platform states the opposite — *on deployed Lambda, environment variables are the config
+plane* — and there env **is** the config plane; forcing a code constant would mean a deploy to change
+a staging timeout.
 
 The portable rule underneath both: **one source of truth per knob, and the deployment's own config
 mechanism is the one to use.** Whether that is a YAML file or an env var is a property of the
@@ -170,7 +170,7 @@ platform, not of LLM code.
 
 ## Canonical shape
 
-The resilience ladder, reduced from `storyboard_module.py`'s `_extract_image_prompt_resilient`:
+The resilience ladder, reduced from one cited multi-stage extraction pipeline:
 
 ```python
 def extract_resilient(call, *, item, validate, fallback) -> Result:

@@ -9,6 +9,9 @@ alwaysApply: false
 
 # Anti-slop (Fallow)
 
+> **Operator / CI reference.** Examples below name specific repos and workflow files from one
+> developer's setup. The policy (advisory → blocking Fallow gate) is portable; the repo names are not.
+
 **Slop** is plausible-looking code that nobody needs: dead exports and files no
 one imports, the same block copy-pasted across five components, functions that
 balloon in complexity, dependencies pulled in and never used. It is the natural
