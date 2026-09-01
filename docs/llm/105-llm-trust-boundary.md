@@ -158,8 +158,8 @@ boundary, not at each call site.
 
 ## Canonical shape
 
-An action dispatcher with the boundary made explicit — the `executeAction` shape from
-`sigma-intent/index.ts` with the three missing pieces added:
+An action dispatcher with the boundary made explicit — the `executeAction` shape from one cited
+intent plugin with the three missing pieces added:
 
 ```ts
 type Action = {
