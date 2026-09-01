@@ -17,15 +17,11 @@ runs once, returns a result — has none of these rungs and uses
 [`130-agent-job-contracts.md`](130-agent-job-contracts.md) instead. A Lambda has no skill rung; a
 CLI has no queue. Applying either file to the other's architecture manufactures wrong answers.
 
-**Cited implementations:** `hermes-agent` (the footprint ladder, `tools/registry.py`, the
-session-vs-env rule — all from its `AGENTS.md`), `claw-calendar/plugins/sigma-*` (the plugin route,
-and the fork cost this file is written against).
-
 | This file is… | Precedence |
 |---|---|
-| **derived from** hermes' footprint ladder and registration contract | hermes wins |
+| **derived from** a footprint ladder and registration contract seen in production harnesses | those patterns win |
 | **deliberately narrower** — the fork-patch/upstream distinction | states its reason below |
-| **downstream** — session-vs-env is scoped here, hermes states it unconditionally | this file wins on scope: the counter-case is named |
+| **downstream** — session-vs-env is scoped here; some upstream docs state it unconditionally | this file wins on scope: the counter-case is named |
 
 ## Do
 
@@ -69,9 +65,9 @@ first implementation, and turn the rest into plugins against it.
 
 ## Plugin over fork patch — and the distinction that makes it workable
 
-**Carrying a local patch to a vendored core is a permanent tax.** The measured cost in this
-codebase: the openclaw fork diverges by **9,227 files for 99 real changes**, and an entire migration
-project exists to undo it. Every upstream release is a rebase against that.
+**Carrying a local patch to a vendored core is a permanent tax.** A measured fork can diverge by
+thousands of files for a handful of real changes — every upstream release becomes a rebase against
+that drift.
 
 **Upstreaming a generic widening is not a fork patch.** These are different acts:
 
@@ -81,10 +77,10 @@ project exists to undo it. Every upstream release is a rebase against that.
 | Costs | a rebase every release | one review |
 | Shape | "make core do *my* thing" | "make the extension surface able to express *a class of* things" |
 
-The worked example is `sigma-intent`. It needed to invoke a capability another plugin already had;
-the plugin API exposes no `getTool`/`invokeTool`, so it **built a second Google Calendar client**.
-That duplication is the cost of not widening. The right fix was never a local patch pinning one
-plugin to another — it was a generic registry lookup, upstreamed, that any plugin could use.
+The worked example: a plugin needed to invoke a capability another plugin already had; the plugin API
+exposes no `getTool`/`invokeTool`, so it **built a second client for the same service**. That
+duplication is the cost of not widening. The right fix was never a local patch pinning one plugin
+to another — it was a generic registry lookup, upstreamed, that any plugin could use.
 
 The test: **would anyone but you use this widening?** If yes, upstream it. If no, it is a
 special-case and belongs in your plugin.

@@ -16,16 +16,11 @@ One question: **are we sure this change produces a better result?** — answered
 than a vibe. Without one, every prompt edit is a coin flip that looked good on the input you had
 open.
 
-**Cited implementations:** `storyboard-agent/packages/agents/eval` (deterministic scorers, diverse
-corpus, the offline CI gate — the reference), `hermes-agent/evals/compaction` (a judge measuring
-recall against gold), `hermes-agent` (the test antipatterns), `app-monorepo`
-(`test_agent_templates.py`, the worked example of an allowed file assertion).
-
 | This file is… | Precedence |
 |---|---|
-| **derived from** the eval harness shape and the two test antipatterns | those implementations win |
+| **derived from** eval harness shapes and two test antipatterns seen in production | those patterns win |
 | **deliberately narrower** — the knob drift test, scheduled live evals | states its reason below |
-| **downstream** — storyboard bans hardcoded expected outputs outright; that is right for its stage and wrong as a general law | this file wins, and says why |
+| **downstream** — some pipelines ban hardcoded expected outputs outright; that is right for generation stages and wrong as a general law | this file wins, and says why |
 
 ## Do
 
@@ -56,10 +51,10 @@ They answer different questions and both are needed:
 | Expected output | none — the property *is* the assertion | yes, and hardcoding it is the point |
 | Fails when | the pipeline breaks a contract | the pipeline gets it wrong |
 
-storyboard-agent's harness asserts only invariants and says so: *"No expected outputs are hard-coded
-(that would refit the judge to one run)."* **That is correct for generation**, where "the right
-storyboard" is not a single string — and wrong as a general law. hermes' compaction eval scores
-**recall against gold answers**, because "did this fact survive compaction" has a right answer.
+Some generation pipelines assert only invariants: *"No expected outputs are hard-coded (that would
+refit the judge to one run)."* **That is correct for generation**, where "the right output" is
+not a single string — and wrong as a general law. A compaction eval scores **recall against gold
+answers**, because "did this fact survive compaction" has a right answer.
 
 Applied blanket, "no hardcoded expected outputs" bans classifier and extraction evals entirely and
 leaves *"the JSON parsed"* as a passing score — which is exactly the class of failure this band
@@ -78,10 +73,10 @@ Build it to vary every one of those axes deliberately — and make it *not* the 
 that helps one shape and regresses another is exactly what this catches, and nothing else will.
 
 **"Don't fit the example" is an eval rule, not a prompting rule.** Few-shot examples inside a prompt
-are fine and mainstream — `sigma-intent`'s classifier prompt carries seven, and they are why it
-works. What is banned is *prose true only of your test case* ("there are three characters," the
-demo's genre baked into an instruction) and *a corpus that is the demo*. Do not let this rule strip
-worked examples out of prompts.
+are fine and mainstream — a classifier prompt may carry several, and they are why it works. What is
+banned is *prose true only of your test case* ("there are three characters," the demo's genre baked
+into an instruction) and *a corpus that is the demo*. Do not let this rule strip worked examples
+out of prompts.
 
 ## Deterministic first, judges for what pure functions cannot check
 
@@ -95,10 +90,10 @@ Start there and cover everything they can reach.
 **A judge is for what a pure function genuinely cannot check** — semantic adherence, "did this
 survive compaction," "does this image match the scene." When you need one:
 
-- **Measure the thing that matters, not a proxy.** hermes' compaction eval scores *recall* — it
-  generates factual questions from the region compaction will summarize away, then asks a fresh
-  model those questions against only the post-compaction context and grades against gold. Not
-  "tokens retained." Tokens retained is the cost; recall is the thing you were buying.
+- **Measure the thing that matters, not a proxy.** A compaction eval scores *recall* — it generates
+  factual questions from the region compaction will summarize away, then asks a fresh model those
+  questions against only the post-compaction context and grades against gold. Not "tokens retained."
+  Tokens retained is the cost; recall is the thing you were buying.
 - **A judge never gates a hard invariant.** It is noisy; invariants are not.
 
 ## Two antipatterns, and the line between them
@@ -126,10 +121,9 @@ a variable, and has never once executed the path it claims to guard.
 
 **The line is the proxy, not the file read.** Asserting about a **declaration** — a config, a
 template, a manifest, a prompt fragment — is asserting about a *file*, which is what that file *is*.
-Acme's `test_agent_templates.py` is the worked example of the allowed side: text assertions over
-**discovered** `template.yaml` files, with the reason stated (CloudFormation `!Ref` short tags break
-`yaml.safe_load`) and a floor-not-exact-count assertion so discovery breaking can't leave every
-parametrized test vacuously passing.
+The allowed pattern: text assertions over **discovered** `template.yaml` files, with the reason stated
+(some YAML loaders break on short tags) and a floor-not-exact-count assertion so discovery breaking
+cannot leave every parametrized test vacuously passing.
 
 A flat "never read files in tests" would forbid the prompt-fragment drift test that
 [`120`](120-prompt-and-context-budget.md)'s composition rule depends on. Keep the proxy ban; keep
@@ -143,9 +137,8 @@ says a test nothing runs is not coverage.
 
 Assert the code constant and any config schema `default` agree, and assert the *relationships*
 (`preflight_budget > measured_cold_p99`, `per_message_timeout < platform_ceiling`) rather than
-freezing the numbers — a raw-value assertion is a change-detector. `sigma-intent` learned this the
-hard way twice: a model default that 404'd, and a timeout that was 5 s in the schema and 15 s in
-code.
+freezing the numbers — a raw-value assertion is a change-detector. Production has seen this twice: a
+model default that 404'd, and a timeout that was 5 s in the schema and 15 s in code.
 
 ## Where it runs
 
@@ -168,13 +161,9 @@ for weeks.
 
 **A test that no workflow runs is not coverage.** Verify the path filters still match after any
 move — a refactor that relocates code silently relocates it out of CI's reach, and nothing goes red
-to tell you. The worked example is in flight rather than shipped, which is exactly when to catch it:
-`claw-calendar`'s unmerged `feat/extract-sigma-plugins` branch moves five plugins from
-`openclaw/extensions/` to `plugins/`, while `openclaw-tests.yml` triggers on `openclaw/**` and runs
-`vitest run scripts extensions/sigma-intent` with `working-directory: openclaw`. On that branch the
-target directory does not exist, so 73 tests — including the config-drift guard above — would run
-nowhere while CI reported green. On `main` they still run. **Land the workflow change in the same
-commit as the move**, not after it.
+to tell you. **Land the workflow change in the same commit as the move**, not after it: a branch that
+relocates packages while the workflow still triggers on the old paths can report green while the
+eval suite runs nowhere.
 
 ## Canonical shape
 

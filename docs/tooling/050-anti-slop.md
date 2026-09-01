@@ -9,9 +9,6 @@ alwaysApply: false
 
 # Anti-slop (Fallow)
 
-> **Operator / CI reference.** Examples below name specific repos and workflow files from one
-> developer's setup. The policy (advisory → blocking Fallow gate) is portable; the repo names are not.
-
 **Slop** is plausible-looking code that nobody needs: dead exports and files no
 one imports, the same block copy-pasted across five components, functions that
 balloon in complexity, dependencies pulled in and never used. It is the natural
@@ -47,16 +44,15 @@ It scores all of this against the **changed** code in a PR, so the gate is about
 
 ## Two gate strategies (pick by repo maturity)
 
-We run Fallow two ways across our repos. **Adopt advisory first; graduate to
-blocking once a repo's new-code findings are reliably clean.**
+Run Fallow two ways in practice. **Adopt advisory first; graduate to blocking once a repo's
+new-code findings are reliably clean.**
 
 ### 1. Advisory `deslop` — new-only, never blocks
 
-Used in **studio-app** and **studio-app-2**. The CI job is literally named
-`deslop`. On every PR touching the frontend it audits the changed files and posts
-a **sticky bot comment** splitting *new* vs *inherited* findings — but it **never
-fails the check**. This is the right entry point for a repo that already carries a
-backlog: you get the signal without blocking feature work.
+The CI job is often named `deslop`. On every PR touching the frontend it audits the changed files
+and posts a **sticky bot comment** splitting *new* vs *inherited* findings — but it **never fails the
+check**. This is the right entry point for a repo that already carries a backlog: you get the signal
+without blocking feature work.
 
 ```yaml
 deslop:
@@ -89,10 +85,9 @@ The two flags that make it advisory and scoped:
 
 ### 2. Blocking audit — gates the PR
 
-Used in **storyboard-agent** via the official action. The audit **exits 1 on a
-`fail` verdict**, posts a PR comment **and inline review comments**, and is scoped
-to the changed files by `.fallowrc.json` at the root. Forks are skipped so a
-write-scoped token never runs on untrusted PRs.
+The audit **exits 1 on a `fail` verdict**, posts a PR comment **and inline review comments**, and is
+scoped to the changed files by `.fallowrc.json` at the root. Forks are skipped so a write-scoped
+token never runs on untrusted PRs.
 
 ```yaml
 # .github/workflows/fallow.yml
@@ -132,7 +127,7 @@ fallow health --score         # 0–100 project health; record the baseline so r
 fallow dead-code              # just the unreferenced files/exports
 ```
 
-Wire them as scripts so they're one keystroke (from **storyboard-agent**):
+Wire them as scripts so they're one keystroke:
 
 ```jsonc
 {
@@ -154,23 +149,19 @@ export const keepThis = 1;
 
 ## Tuning `.fallowrc.json` (don't fight the tool — configure it)
 
-A noisy gate gets ignored, which is worse than no gate. Every override below is
-load-bearing and should carry a comment saying **why** (jsonc comments are fine).
-Real examples from **storyboard-agent**'s config:
+A noisy gate gets ignored, which is worse than no gate. Every override below is load-bearing and
+should carry a comment saying **why** (jsonc comments are fine):
 
-- **`ignoreDependencies`** — deps Fallow genuinely can't see are *used*, e.g. a
-  build-tool plugin invoked by a non-JS executor, or `tslib` emitted by tsc under
-  `importHelpers: true`. Without this, real deps get flagged as unused. Don't
-  silence findings you could fix — only the ones the analysis structurally can't see.
-- **`duplicates.minOccurrences`** — raise it (e.g. `4`) so 3-site boilerplate
-  that's cheaper to leave inline isn't flagged. Abstract clones when they're
-  *widely* copied, not on the second paste.
-- **`health` thresholds** — keep `maxCyclomatic` / `maxCognitive` near defaults so
-  the gate catches genuinely branchy functions. **Watch `maxCrap`:** with no
-  coverage data fed in, CRAP collapses to `cyclomatic² + cyclomatic`, so the
-  default trips on ordinary p90 functions — raise it (storyboard-agent uses `120`)
-  so it only catches genuinely high-risk code, and lean on the cyclomatic/cognitive
-  gates instead.
+- **`ignoreDependencies`** — deps Fallow genuinely can't see are *used*, e.g. a build-tool plugin
+  invoked by a non-JS executor, or `tslib` emitted by tsc under `importHelpers: true`. Without this,
+  real deps get flagged as unused. Don't silence findings you could fix — only the ones the analysis
+  structurally can't see.
+- **`duplicates.minOccurrences`** — raise it (e.g. `4`) so 3-site boilerplate that's cheaper to
+  leave inline isn't flagged. Abstract clones when they're *widely* copied, not on the second paste.
+- **`health` thresholds** — keep `maxCyclomatic` / `maxCognitive` near defaults so the gate catches
+  genuinely branchy functions. **Watch `maxCrap`:** with no coverage data fed in, CRAP collapses to
+  `cyclomatic² + cyclomatic`, so the default trips on ordinary p90 functions — raise it (e.g. `120`)
+  so it only catches genuinely high-risk code, and lean on the cyclomatic/cognitive gates instead.
 - **`rules` as `warn`** — set `unused-exports`/`unused-types`/`unused-files` to
   `warn` so a feature PR that merely *touches* a file with a pre-existing unused
   export isn't hard-failed. Dead code is signal, not a blocker on unrelated work.

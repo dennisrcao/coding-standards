@@ -74,8 +74,9 @@ is the frontmatter of the file this doc becomes.
    and fill in `hub_commit`, `profile`, `adopted`, `skip`, and `exceptions`. For `030`, record
    both `hub_doc` and `mdc` (see the example).
 
-`~/Desktop/studio` is the worked example: three rules adopted, globs flattened to `src/…`, all
-three `@`-imported at the bottom of its `CLAUDE.md`.
+A typical adoption: pick three rules (e.g. SCSS nesting, Zustand selectors, packed imports),
+flatten globs to the target's `src/…` layout, copy the `.mdc` files into `.cursor/rules/`, and
+`@`-import them at the bottom of the repo's `CLAUDE.md` or `AGENTS.md`.
 
 ## Writing a new standard
 
@@ -86,10 +87,12 @@ three `@`-imported at the bottom of its `CLAUDE.md`.
 - **Shape** — fenced `yaml` frontmatter block → `# Title (scope)` → **Do** / **Don't** →
   `## Canonical shape` with real code. Rules carry their reason inline; a rule without a
   rationale gets argued with instead of followed.
-- **Ground it.** Cite the real repo and file the pattern (or the bug) came from. Standards
-  derived from problems this codebase actually hit get followed; generic advice does not.
-  Note the "or the bug" — an *omission* is citable evidence (`grep` returning nothing where
-  something must exist), which is how `105` and the idempotency rule in `100` are grounded.
+- **Keep adoptable docs portable.** Adoptable standards (`adoptable: true` in
+  `standards-adoption.yaml`) must not name a specific repo, checkout path, or production file.
+  Ground the rule in the *mechanism* — what failed, what pattern fixed it — and show it with
+  **generic snippets** (`@/api/todos/queries.ts`, fictional module names). Repo-specific war
+  stories belong in workflow/operator docs (`adoptable: false`) or in this hub's archive/research,
+  not in a file downstream repos copy.
 - **Precedence is per claim, never per repo.** `020-zustand.md` is the pattern to copy: name an
   upstream source of truth, then a three-way table saying which parts are *derived from* it,
   which are *deliberately narrower*, and which are *downstream* of a silent or stale upstream —

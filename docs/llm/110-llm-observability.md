@@ -13,31 +13,27 @@ alwaysApply: false
 A model path fails **quietly**. It returns a plausible value, or a legitimate-looking "nothing to
 do," and the caller carries on. Every rule here exists to make a dead path loud.
 
-**Cited implementations:** `claw-calendar/plugins/sigma-intent/src/llm-classifier.ts`
-(`ClassifierHealth` — the reference), `storyboard-agent` (`_log_headroom`, and the aggregate gap
-this file names), `app-monorepo/apps/py-lambdas/shared_layer/shared/observability.py` (trace
-continuation, ADR-0003).
-
 | This file is… | Precedence |
 |---|---|
-| **derived from** `ClassifierHealth` and `observability.py` | those implementations win |
+| **derived from** repeated production incidents — typed health, transition logging | those patterns win |
 | **deliberately narrower** — the stateless variant, the headroom denominator | states its reason below |
-| **downstream** — no cited repo reports an aggregate degradation rate | this file wins; the gap is the grounding |
+| **downstream** — aggregate degradation rate is named here because no single repo had it | this file wins |
 
 ## The incident this is written from
 
-`sigma-intent`'s LLM fallback ran **dead for weeks**. The default model 404'd on every call, and
-every failure path returned the same value as a genuine "this message isn't a command":
+An LLM classifier fallback ran **dead for weeks**. The default model 404'd on every call, and every
+failure path returned the same value as a genuine "this message isn't a command":
 
-> Before this existed, every failure path returned `NONE_RESULT` with a `warn`, so "the model 403s
-> on every request" and "the user said something unclassifiable" were the same observable event.
+> Before typed health existed, every failure path returned the empty intent with a `warn`, so "the
+> model 403s on every request" and "the user said something unclassifiable" were the same observable
+> event.
 
 Intent detection had silently become regex-only. Nothing was broken enough to notice.
 
-`storyboard-agent` has the same exposure today in a different shape: when a Stage-2 call degrades,
-it logs `[gen] Haiku FALLBACK frame=%d` and returns a valid board. A board where **all 15 frames**
-fell back emits 15 `INFO` lines and reports success. There is no number that says "this run was
-fully degraded."
+A generation pipeline has the same exposure in a different shape: when a frame call degrades to a
+deterministic fallback, it logs one line per frame and returns a valid board. A board where **all
+frames** fell back emits many `INFO` lines and reports success. There is no number that says "this
+run was fully degraded."
 
 ## Do
 
@@ -95,8 +91,8 @@ latency_ms }` — and do transition detection **in the metric store** (an alarm 
 reason token over a window). The rule is preserved: a human hears about a *change*, not about every
 call. Only the place that holds the state moves.
 
-`app-monorepo/apps/py-lambdas/**` is the layout where this applies; `sigma-intent`'s gateway is the
-layout where the in-process form applies. Pick by process lifetime, not by taste.
+Long-lived gateway processes use the in-process form; one-shot workers use the metric-store form.
+Pick by process lifetime, not by taste.
 
 ## Report the degradation rate, not the incidents
 
@@ -148,7 +144,7 @@ belongs here: the log may keep a longer prefix than the model sees.
 
 ## Canonical shape
 
-The transition function from `llm-classifier.ts`, with the stateless variant beside it:
+The transition function, with the stateless variant beside it:
 
 ```ts
 type Health = {

@@ -18,14 +18,9 @@ Two independent codebases arrived at the same sentence — one on tool registrie
 we add is sent on every API call, so the bar for a new core tool is high"*), one on signature
 docstrings (*"Every word in a signature docstring ships into the LLM prompt on every call."*).
 
-**Cited implementations:** `storyboard-agent/packages/agents/agents/signatures.py` (shared fragments
-as constants), `app-monorepo/apps/py-lambdas/shared_layer/shared/prompts.py` +
-`shared/schema/*.yaml` (fragments as data), `hermes-agent` (`tools/registry.py` bounding, schema
-description rules, cache policy). Repo names are grounding only — the rules below are portable.
-
 | This file is… | Precedence |
 |---|---|
-| **derived from** the fragment-composition pattern and the bounding boundary | those implementations win |
+| **derived from** the fragment-composition pattern and the bounding boundary | those patterns win |
 | **deliberately narrower** — fragment versioning | states its reason below |
 | **downstream / relabelled** — the ≤60-char cap and the cache rules are **house narrowings**, not law | this file wins on scope, and names each condition |
 
@@ -62,9 +57,7 @@ instructions, output format** — which is a good default decomposition.
 
 **Fragments carry a version id.** Prompt text is the largest uncontrolled input to output quality,
 and [`140`](140-llm-evals.md)'s eval results are meaningless if you cannot say which prompt produced
-them. A monotonic id on the fragment set, recorded in the eval run, is the minimum. Neither cited
-implementation does this yet — it is a narrowing this file adds, and the reason is that both of them
-have eval or scorecard output that cannot currently be attributed.
+them. A monotonic id on the fragment set, recorded in the eval run, is the minimum.
 
 ## Tool descriptions teach behavior
 
@@ -72,10 +65,9 @@ The description is prompt surface, and it is the model's only documentation. The
 length cap:
 
 > the description teaches behavior, not structure the params already define.
-> — one cited todo tool, inline
 
-That tool's own description runs several hundred characters and spends them on things the schema
-cannot express: when to reach for it, that list order is priority, that only one item may be
+A well-written todo tool description runs several hundred characters and spends them on things the
+schema cannot express: when to reach for it, that list order is priority, that only one item may be
 in-progress, that completion is marked after verification and never on intent. None of that is
 derivable from `{ todos: [{ id, content, status }] }`.
 
@@ -112,7 +104,7 @@ _MAX_TOOL_ERROR_CHARS = 2048
 _MAX_LOGGED_ERROR_CHARS = 8192   # logs keep more than the model sees
 ```
 
-One cited agent harness applies this at dispatch precisely so *"no registered tool can return an
+One agent harness applies this at dispatch precisely so *"no registered tool can return an
 unbounded error body that stacks across retries."* The asymmetry is deliberate: the log is for a human debugging once;
 the context is paid on every subsequent turn. The logging half of this is
 [`110`](110-llm-observability.md).
@@ -126,7 +118,7 @@ every turn and anything that mutates it multiplies cost. The rules:
   Compression is the one sanctioned exception.
 - A command that mutates system-prompt state (installing a skill, toggling a tool) defaults to
   **deferred invalidation** — it takes effect next session — with an opt-in flag for "now."
-- Inject session-scoped additions as a **user message**, not by editing the system prompt. One cited
+- Inject session-scoped additions as a **user message**, not by editing the system prompt. One common
   harness routes skill slash-commands this way for exactly this reason.
 - Keep role alternation clean: no two same-role messages in a row.
 
@@ -180,8 +172,7 @@ def get_bbox_detection_prompt(product_name: str) -> str:
     ])
 ```
 
-The same law in the other substrate — module constants in `signatures.py`, with the reason stated in
-the file:
+The same law in the other substrate — module constants composed at authoring time:
 
 ```python
 # Every word in a signature docstring ships into the LLM prompt on every call.

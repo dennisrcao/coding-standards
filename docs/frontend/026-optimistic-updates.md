@@ -119,11 +119,3 @@ Optimism is a claim that you can predict the server. Do not make it when you can
 - [ ] A test asserts the cache-shape invariant across every cache you touched.
 - [ ] You loaded the page. The motivating failure passed typecheck, lint and the full unit suite while
       the feature was broken on screen.
-
-## Cited implementations
-
-Ground-truth repos that shaped this standard — not required reading for adoption:
-
-- A minimal document-comment mutation hook with rollback test (single-cache shape).
-- A multi-week session planner with multi-cache `onMutate`, reverse mutations, and invariant tests.
-- A calendar scheduling PR that shipped every anti-pattern named above despite green CI.

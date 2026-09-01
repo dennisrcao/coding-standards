@@ -18,16 +18,11 @@ is alive is [`110-llm-observability.md`](110-llm-observability.md).
 in a `packages/agents/` layout both files fire. That is correct, not a conflict — `005` governs
 transport and framework, this file governs the model call inside it.
 
-**Cited implementations:** `claw-calendar/plugins/sigma-intent` (regex→LLM tiering, response
-hardening, measured timeouts), `storyboard-agent/packages/agents` (degradation ladder),
-`app-monorepo/apps/py-lambdas/shared_layer` (retry taxonomy), `hermes-agent` (error-body bounding,
-config policy). Precedence is per claim:
-
 | This file is… | Precedence |
 |---|---|
-| **derived from** the cited implementation — tiering, hardening, the ladder, the retry taxonomy | that implementation wins; a disagreement here is a bug in *this* file |
+| **derived from** provider docs and repeated production incidents — tiering, hardening, the ladder, the retry taxonomy | upstream mechanism wins; a disagreement here is a bug in *this* file |
 | **deliberately narrower** — retry policy, idempotency, timeout derivation | each narrowing states its reason below and does not defer upward |
-| **downstream** — the cited implementation is silent or provably wrong (substring error matching, "retry once", no idempotency key) | this file wins, and says why |
+| **downstream** — silent or provably wrong patterns (substring error matching, "retry once", no idempotency key) | this file wins, and says why |
 
 ## Do
 
@@ -64,7 +59,7 @@ if (regexResult) return { classified: regexResult, source: "regex" };
 if (llmClassifier) return { classified: await llmClassifier(text), source: "llm" };
 ```
 
-Derived from `sigma-intent/src/classify.ts`. The fall-through is what makes this safe: an
+Derived from the regex→LLM fall-through pattern. The fall-through is what makes this safe: an
 unanticipated phrasing reaches the model rather than being silently dropped.
 
 The hazard is the opposite direction — a regex that *hits* on a compound utterance and shadows a
@@ -74,18 +69,17 @@ a precision bug from a traffic-mix change.
 
 ## Hardening is the fallback tier — and still necessary
 
-Constrained decoding does not make the parse ladder obsolete. `sigma-intent` sends
-`format: "json"` to Ollama **and still** strips `<think>` blocks, because local reasoning models
-wrap constrained output in prose. Order matters:
+Constrained decoding does not make the parse ladder obsolete. Local reasoning models may wrap
+constrained JSON in prose or thinking tags — strip fences and tags before parse. Order matters:
 
 ```ts
 const cleaned = extractJsonObject(stripCodeFences(stripThinkTags(raw)));
 ```
 
-Then validate. `validateClassifiedIntent` in `llm-classifier.ts` is the reference: it rejects an
-unknown discriminant, requires the fields each variant actually needs, trims strings, and coerces
-`amount` to a number — returning `null` rather than a half-built object. A rejected shape is a
-**health event** ([`110`](110-llm-observability.md)), not a silent "no answer."
+Then validate. `validateIntent()` is the reference shape: reject an unknown discriminant, require
+the fields each variant needs, trim strings, coerce numbers — returning `null` rather than a
+half-built object. A rejected shape is a **health event** ([`110`](110-llm-observability.md)), not a
+silent "no answer."
 
 ## The degradation ladder
 
@@ -102,7 +96,7 @@ needs a label and a metric, not a re-roll.
 
 ## Retry: right taxonomy, wrong mechanism
 
-One cited Python retry module gets the taxonomy right and this file adopts it wholesale:
+One production retry module established the taxonomy below; this file adopts it wholesale:
 
 | Retryable | Not retryable |
 |---|---|
@@ -116,8 +110,8 @@ Retrying the right column just burns the caller's timeout.
 GEMINI_TRANSIENT_MARKERS = ("DEADLINE_EXCEEDED", "Deadline expired", "504", ...)
 ```
 
-This is the bug class one cited agent harness bans after repeated fleet incidents (*"DO NOT infer
-process identity from argv substrings"*): a substring is not a type. A message containing `"504"` inside a URL, a
+This is the bug class fleet runbooks warn against (*"DO NOT infer process identity from argv
+substrings"*): a substring is not a type.
 provider rewording its prose, or a wrapped exception all change the answer. **Classify on the
 structured signal** — the SDK's typed exception, `response.status`, an error `code` — and fall back
 to string matching only where a provider gives you nothing else, with that admission in a comment.
@@ -140,14 +134,13 @@ is in [`130-agent-job-contracts.md`](130-agent-job-contracts.md).
 
 ## Pins, knobs, and timeouts
 
-- **Pin the model; an alias that silently moves is a defect.** One cited plugin default proved this
-  twice: it 404'd on a model that no longer existed, and the obvious fix (bump the tag) 403'd
-  because every `:cloud` tag on that host requires a paid subscription. A default that ships must
-  not assume a paid tier.
+- **Pin the model; an alias that silently moves is a defect.** A pinned default that 404'd on a
+  retired model, then 403'd when bumped to a paid-tier alias, is the reference incident. A default
+  that ships must not assume a paid tier.
 - **One constant per knob in code, mirrored by any config schema, with a test asserting they
-  agree.** The drift test lives in [`140-llm-evals.md`](140-llm-evals.md). One cited schema said 5 s
-  while its code said 15 s; the schema value was never materialized, so the mismatch was invisible
-  until every call aborted.
+  agree.** The drift test lives in [`140-llm-evals.md`](140-llm-evals.md). A schema default of 5 s
+  with code at 15 s — when the schema value is never materialized — is invisible until every call
+  aborts.
 - **Derive timeouts from a recorded measurement and commit the derivation, not a comment.** A
   55 s-cold / 7 s-warm pair measured on one CPU-only host is not a portable default; copy it behind
   API Gateway's 29 s ceiling and the preflight *is* the outage. Name the platform ceiling that
@@ -158,11 +151,10 @@ is in [`130-agent-job-contracts.md`](130-agent-job-contracts.md).
 
 ## Config plane — the rule most often over-generalized
 
-One cited local CLI bans new env vars for non-secret config: `.env` is for credentials, behavior goes
-in `config.yaml`. **That is a house narrowing of a local CLI, not a portable rule.** One cited
-serverless platform states the opposite — *on deployed Lambda, environment variables are the config
-plane* — and there env **is** the config plane; forcing a code constant would mean a deploy to change
-a staging timeout.
+Some local CLIs ban new env vars for non-secret config: `.env` is for credentials, behavior goes
+in `config.yaml`. **That is a house narrowing of a local CLI, not a portable rule.** Serverless
+deployments often state the opposite — *environment variables are the config plane on Lambda* — and
+there forcing a code constant would mean a deploy to change a staging timeout.
 
 The portable rule underneath both: **one source of truth per knob, and the deployment's own config
 mechanism is the one to use.** Whether that is a YAML file or an env var is a property of the
@@ -170,7 +162,7 @@ platform, not of LLM code.
 
 ## Canonical shape
 
-The resilience ladder, reduced from one cited multi-stage extraction pipeline:
+The resilience ladder, reduced from a multi-stage extraction pipeline:
 
 ```python
 def extract_resilient(call, *, item, validate, fallback) -> Result:

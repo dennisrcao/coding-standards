@@ -17,16 +17,11 @@ conversational agent** extended by plugins and skills uses
 here and no queue there; applying either file to the other's architecture manufactures wrong
 answers.
 
-**Cited implementation:** `app-monorepo/libs/agent-contracts` — a zod registry mapping agent name to
-payload schema, result schema, and execution weight class, tested by `contracts.spec.ts`. This is
-the most mature architecture of the four codebases that seeded this band, and most of this file is
-derived from it.
-
 | This file is… | Precedence |
 |---|---|
-| **derived from** `agent-contracts` — the registry, weight class → queue, shallow result schemas, must-ignore payloads | that implementation wins |
+| **derived from** a zod registry mapping agent name to payload schema, result schema, and execution weight class | that pattern wins |
 | **deliberately narrower** — the safety conditions on must-ignore | states its reason below |
-| **downstream** — the envelope has no idempotency key today | this file wins; the omission is the grounding |
+| **downstream** — the envelope may lack an idempotency key today | this file wins; the omission is the grounding |
 
 ## Do
 
@@ -64,9 +59,9 @@ for; when results land in a `jsonb` column, over-modelling buys nothing and cost
 
 ## Strict on what you consume, must-ignore on extras
 
-Payload objects are **loose**: unknown keys pass through rather than failing validation. In Acme
-this is load-bearing — the dispatcher spreads a request body into `payload`, so *"unknown extras are
-the contract, not a validation failure."*
+Payload objects are **loose**: unknown keys pass through rather than failing validation. A typical
+dispatcher spreads a request body into `payload`, so *"unknown extras are the contract, not a
+validation failure."*
 
 **This is not a relaxation of [`100`](100-llm-call-pathway.md)'s validation rule.** A loose schema
 still enforces every **declared** key's presence and type; it only declines to reject the undeclared
@@ -101,10 +96,10 @@ Beyond the payload itself, four fields earn their place on every message:
 if the work is dedupable, and **the envelope is where the key lives** — the producer derives it from
 the unit of work, every retry of that job reuses it, and the sink dedupes on it.
 
-Grounded in a live gap in the cited implementation: the job envelope carries `jobId`, `traceContext`
-and a schema version, and `grep -i idempoten` across `agent-contracts`, the shared layer, and every
-handler returns **nothing** — while the shared Gemini wrapper retries **image generation**. A
-provider deadline on a call the model actually completed bills twice and can deliver twice.
+Grounded in a common gap: the job envelope carries `jobId`, `traceContext`, and a schema version,
+while a shared provider wrapper retries **image generation** — but nothing in the contract names an
+idempotency key. A provider deadline on a call the model actually completed can bill twice and
+deliver twice.
 
 `jobId` is not automatically an idempotency key. It is one only if a retry reuses the same job id
 *and* the sink treats it as a dedupe key. If a retry mints a new job, it is a correlation id and

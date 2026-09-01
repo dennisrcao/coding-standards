@@ -24,11 +24,11 @@ band do **not** have this covered, and the gap is what prompted the document.
 |---|---|
 | **derived from** published guidance — injection, excessive agency, argument validation | the published guidance wins |
 | **deliberately narrower** — the confirmation seam, the extras rule | states its reason below |
-| **downstream** — the cited repos are silent | this file wins; the grounding is a real exposure, not a pattern to copy |
+| **downstream** — most production codebases are silent on this layer | this file wins; the grounding is a real exposure, not a pattern to copy |
 
 ## The exposure this was written from
 
-One cited intent plugin classifies a chat message and then **acts on it** — inserting todos,
+A common intent-plugin shape classifies a chat message and then **acts on it** — inserting todos,
 marking them done, creating calendar events, switching dashboard views — dispatched straight from
 the classified intent:
 
@@ -158,8 +158,8 @@ boundary, not at each call site.
 
 ## Canonical shape
 
-An action dispatcher with the boundary made explicit — the `executeAction` shape from one cited
-intent plugin with the three missing pieces added:
+An action dispatcher with the boundary made explicit — a typical `executeAction` shape with the
+three missing pieces added:
 
 ```ts
 type Action = {
