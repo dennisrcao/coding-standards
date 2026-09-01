@@ -19,7 +19,9 @@ adopted:
     mdc: .cursor/rules/010-frontend-scss.mdc
   - id: "020"
     mdc: .cursor/rules/020-zustand.mdc
+  # Rule 030 is two hub files — record both. The .mdc name is intentional (not 030-lint-format-quality.mdc).
   - id: "030"
+    hub_doc: projects/coding-standards/docs/tooling/030-lint-format-quality.md
     mdc: .cursor/rules/030-formatting.mdc
 
 skip:

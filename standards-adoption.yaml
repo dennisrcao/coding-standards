@@ -61,8 +61,9 @@ rules:
 
   "030":
     path: tooling/030-lint-format-quality.md
+    mdc_copy: docs-hub/.cursor/rules/030-formatting.mdc
     adoptable: true
-    summary: ESLint + @stylistic, pack-don't-stack
+    summary: ESLint + @stylistic, pack-don't-stack; copy .mdc whole (not a rename of the .md)
 
   "050":
     path: tooling/050-anti-slop.md
@@ -167,9 +168,18 @@ profiles:
     description: Backend with model calls — structured-call subset; read 101 before expanding
     adopt: ["001", "005", "030", "100", "101", "105", "110"]
 
-  agent-full:
-    description: Tool-loop agent service — copy full LLM band; 101 gates day-one binding
-    adopt: ["001", "005", "030", "100", "101", "105", "110", "120", "125", "130", "140"]
+  agent-conversational:
+    description: Long-lived conversational agent (tool loop, plugins, skills) — adopt 125, not 130
+    adopt: ["001", "005", "030", "100", "101", "105", "110", "120", "125", "140"]
+    notes:
+      - "101 gates which 100+ claims bind on day one inside the copied files"
+      - "Do not adopt 130 — job-pipeline agents use that instead of 125"
+
+  agent-job-pipeline:
+    description: Invoke-once job agent (queue, Lambda, CLI) — adopt 130, not 125
+    adopt: ["001", "005", "030", "100", "101", "105", "110", "120", "130", "140"]
+    notes:
+      - "125 governs conversational harness extension; it does not apply here"
 
   quality-gate:
     description: Add when the repo runs Fallow or an equivalent changed-code audit in CI

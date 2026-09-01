@@ -22,12 +22,16 @@ repo, rewrite globs, then record what landed in
 | `next-rsc-fetch` | 001, 010, 015, 020, 030, 080 | No Query — skips 025, 026 |
 | `python-api` | 001, 005, 030 | FastAPI backend |
 | `agent-backend` | 001, 005, 030, 100, 101, 105, 110 | Model calls; read 101 first |
-| `agent-full` | + 120, 125, 130, 140 | Full LLM band; 101 gates day-one binding |
+| `agent-conversational` | + 120, 125, 140 | Tool-loop agent — **not** 130 |
+| `agent-job-pipeline` | + 120, 130, 140 | Invoke-once jobs — **not** 125 |
 | `quality-gate` | 050 | Add when Fallow / changed-code CI exists |
 | `operator-machine` | *(reference only)* 060, 070, 090, 091 | Machine setup — not `.mdc` rules |
 
-Rule IDs are the filename prefix (`020` → `docs/frontend/020-zustand.md`). Workflow docs and
-`150` are **reference-only** in the manifest — read from the hub, do not copy to `.cursor/rules/`.
+Rule IDs are the filename prefix (`020` → `docs/frontend/020-zustand.md`). **Exception — `030`:**
+the full write-up is `docs/tooling/030-lint-format-quality.md`; copy
+`docs-hub/.cursor/rules/030-formatting.mdc` whole into the target repo (not a rename of
+the `.md`). Workflow docs and `150` are **reference-only** — read from the hub, do not copy to
+`.cursor/rules/`.
 
 ## General
 

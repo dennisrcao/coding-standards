@@ -52,20 +52,27 @@ is the frontmatter of the file this doc becomes.
 
 1. Pick a profile in [`standards-adoption.yaml`](standards-adoption.yaml) (or list rule IDs by
    hand). Skip `adoptable: false` entries — workflow operator docs and `150` stay hub-only.
-2. Copy `docs/<category>/<NNN>-<slug>.md` → `<repo>/.cursor/rules/<NNN>-<slug>.mdc`.
+2. Copy `docs/<category>/<NNN>-<slug>.md` → `<repo>/.cursor/rules/<NNN>-<slug>.mdc` — **except
+   `030`** (see step 5).
 3. Swap the opening ` ```yaml ` fence for `---` frontmatter (drop the closing fence too).
 4. **Rewrite `globs` for that repo's layout.** The library assumes `apps/web/src/…`; a flat repo
    needs `src/…`. A rule whose globs don't match is a rule that never fires.
-5. Trim to what that repo needs — a downstream copy may be a narrow extract, not the whole doc.
-   **Exception — `030-formatting`:** copy the hub's
-   [`.cursor/rules/030-formatting.mdc`](../../.cursor/rules/030-formatting.mdc) **whole**. ESLint
-   only lints imports; the hook-deps and parameter-list sections exist so agents stop writing
-   Prettier-style one-name-per-line signatures. Do not shrink 030 to "imports only" unless the
-   repo is explicitly opting out of packed params/deps.
-6. Add `@.cursor/rules/<NNN>-<slug>.mdc` to the repo's `CLAUDE.md` so Claude reads it too, and
-   note in `CLAUDE.md` that the canonical copy lives here.
-7. Copy [`standards.lock.yaml.example`](standards.lock.yaml.example) → `<repo>/standards.lock.yaml`
-   and fill in `hub_commit`, `profile`, `adopted`, `skip`, and `exceptions`.
+5. **Rule `030` — two hub files, one target `.mdc`:**
+   - **Reference / Fallow setup:** `docs/tooling/030-lint-format-quality.md` (this library).
+   - **Copy to target repo:** `docs-hub/.cursor/rules/030-formatting.mdc` →
+     `<repo>/.cursor/rules/030-formatting.mdc` **whole**. Do not rename the `.md` or trim the
+     hook-deps and parameter-list sections — ESLint only lints imports; the `.mdc` carries the
+     rest for agents.
+   - Also copy `projects/coding-standards/eslint-rules/packed-named-imports.mjs` into the target
+     repo and wire it in `eslint.config.mjs`.
+6. Trim other rules to what that repo needs — a downstream copy may be a narrow extract, not the
+   whole doc.
+7. Add `@.cursor/rules/<NNN>-<slug>.mdc` to the repo's `CLAUDE.md` so Claude reads it too, and
+   note in `CLAUDE.md` that the canonical copy lives here. For `030`, `@`-import
+   `030-formatting.mdc`.
+8. Copy [`standards.lock.yaml.example`](standards.lock.yaml.example) → `<repo>/standards.lock.yaml`
+   and fill in `hub_commit`, `profile`, `adopted`, `skip`, and `exceptions`. For `030`, record
+   both `hub_doc` and `mdc` (see the example).
 
 `~/Desktop/studio` is the worked example: three rules adopted, globs flattened to `src/…`, all
 three `@`-imported at the bottom of its `CLAUDE.md`.

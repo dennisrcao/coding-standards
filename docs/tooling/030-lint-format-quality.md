@@ -36,7 +36,7 @@ ESLint **9** flat config (`eslint.config.mjs`), composed with `typescript-eslint
 - `@stylistic/eslint-plugin` → formatting rules under the `@stylistic/*` namespace
 - `{ ignores: ['dist/**'] }` for build output
 
-Reference implementation: [`apps/web/eslint.config.mjs`](../../storyboard-agent/) in storyboard-agent:
+Example flat config for a Vite SPA with a `src/` tree:
 
 ```js
 import eslint from '@eslint/js';
@@ -71,9 +71,9 @@ export default tseslint.config(
 
 **Per package, not at the repo root.** In a monorepo, each JS/TS workspace owns its
 own `eslint.config.mjs` next to its `tsconfig` so type-aware linting resolves the right
-project. The lint **script** stays local (`"lint": "eslint src"`) and an orchestrator
-runs it across workspaces — in storyboard-agent that's Nx (`nx lint` / `nx run-many -t lint`).
-A standalone (non-monorepo) project just keeps the single config and the `eslint src` script.
+project. The lint **script** stays local (`"lint": "eslint src"`) and a monorepo orchestrator
+(Nx, `pnpm -r`, etc.) runs it across workspaces. A standalone project keeps one config and
+`eslint src`.
 
 ### New-project checklist
 
@@ -109,9 +109,8 @@ slice.
 #### Named imports
 
 **Line-length budget: 150.** One number, every repo — for this rule and for
-`@stylistic/max-len` where that is enabled. There is deliberately **no per-repo escape hatch**;
-the previous "pick one per repo" wording is what let claw-calendar pack at 120 while citing
-the studio app v2, a repo it is not.
+`@stylistic/max-len` where that is enabled. There is deliberately **no per-repo escape hatch** — a second ceiling in one repo's copy while
+citing another project's budget is how drift starts.
 
 When a wrap is unavoidable, use the **brace-newline form**: `{` ends the `import` line, names
 follow on 2-space-indented lines packed as densely as the budget allows, and `} from "…";`
@@ -126,9 +125,17 @@ reason this form wins: a line can carry a related set.
 import {
   isCancelledJobError, isWorkerRenderConfigured, workerAttachJob, workerCancelJob,
   workerFirstImageUrl, workerRenderMetaProduct, type WorkerMetaProductSuccess,
-} from "@/lib/c4d/worker-api";
+} from "@/lib/worker-api";
 
-// BAD — the same import, one name per line. The only form the rule flags.
+// GOOD — grouped by meaning when names have natural clusters (geometry, controls, labels)
+import {
+  PAGE, STYLE, mm, COL_CX, COL_W,
+  KNOB_ROW_CY, KNOB, FADER_CX, FADER, FADER_TICK_YS,
+  BTN_BOTTOM, BTN_BOTTOM_CELL_H, BTN_LABEL, BTN_CELL, SIDE_PAIR, SIDE_PAIR_CELL_W,
+  SIDE_QUAD, SIDE_QUAD_CELL_H, SLOT_LABEL, OUTLINE,
+} from "@/lib/print-layout/geometry";
+
+// BAD — the same long import, one name per line. The only form the rule flags.
 import {
   isCancelledJobError,
   isWorkerRenderConfigured,
@@ -137,20 +144,7 @@ import {
   workerFirstImageUrl,
   workerRenderMetaProduct,
   type WorkerMetaProductSuccess,
-} from "@/lib/c4d/worker-api";
-```
-
-A real example of the grouping paying off, from
-`studio/src/components/LaunchControl/LaunchControlSheet.tsx` — geometry, knobs, buttons and
-side cells each get a line:
-
-```ts
-import {
-  PAGE, STYLE, mm, COL_CX, COL_W,
-  KNOB_ROW_CY, KNOB, FADER_CX, FADER, FADER_TICK_YS,
-  BTN_BOTTOM, BTN_BOTTOM_CELL_H, BTN_LABEL, BTN_CELL, SIDE_PAIR, SIDE_PAIR_CELL_W,
-  SIDE_QUAD, SIDE_QUAD_CELL_H, SLOT_LABEL, OUTLINE,
-} from '@/lib/launchcontrol/geometry.ts';
+} from "@/lib/worker-api";
 ```
 
 #### Hook dependency arrays
@@ -197,7 +191,6 @@ const AddNodeButton = ({
 }: IAddNodeButtonProps) => {
 
 // GOOD — many destructured props (15+), still packed — not one name per line.
-// Ground truth: collaborative-learning wraps long signatures the same way.
 export function ConsoleButton({
   label, subLabel, variant = "idle", className, onClick, sfx, fieldView, fieldCamera,
   borderOuter, borderInner, showBackground = true, showBorderOuter = true, showBorderInner = true,
@@ -254,14 +247,15 @@ Its `ExportDeclaration` half was independently hazardous: the fixer only *delete
 the packing rule covers imports alone, so on a repo with multi-line barrel files it yields
 `export {useFoo,` … `type Bar,}`, and it cannot touch comment-interleaved export blocks at all.
 
-**Enforcement (imports only):** custom ESLint rule, canonical at
-[`../../eslint-rules/packed-named-imports.mjs`](../../eslint-rules/packed-named-imports.mjs). Copy
-that file into the consuming repo's `eslint-rules/` and wire it as in the config above.
+**Enforcement (imports only):** custom ESLint rule at
+`projects/coding-standards/eslint-rules/packed-named-imports.mjs`. Copy that file into the
+consuming repo's `eslint-rules/` and wire it as in the config above.
 
 **Hook deps and parameter lists are not linted** — the rule covers `ImportDeclaration` only.
-They are a **review-level and agent-level** expectation, carried by this doc and by the Cursor
-rule template. A clean `eslint` run says nothing about them; a scoped rule that plugs only the
-import hole is exactly how one-per-line leaks back into deps and params.
+They are a **review-level and agent-level** expectation, carried by
+`docs-hub/.cursor/rules/030-formatting.mdc` (copy whole into the target repo). A clean
+`eslint` run says nothing about them; a scoped rule that plugs only the import hole is exactly
+how one-per-line leaks back into deps and params.
 
 The rule reports **two** shapes, and autofixes both:
 
@@ -272,9 +266,9 @@ The rule reports **two** shapes, and autofixes both:
 
 `fitsOnOneLine` exists because rule 1 of this standard is *one line when it fits* — a
 gratuitous wrap violates it just as much as one-per-line does. It is also the shape that
-**accumulates**, precisely because a linter looking only for one-per-line never sees it: in
-`studio`, the first adoption pass found 9 one-per-line imports and **10** gratuitously wrapped
-ones. Both counts are now enforced.
+**accumulates**, precisely because a linter looking only for one-per-line never sees it — a
+typical first adoption pass finds both one-per-line imports and gratuitously wrapped ones that
+fit on a single line. Both shapes are enforced.
 
 An import that genuinely exceeds the budget and is already packed — brace-newline or hanging —
 is left alone, so adopting the rule in an existing repo still produces no mass reformat.
@@ -287,29 +281,31 @@ more names on a line — preferring brace-newline there stays a **review-level**
 
 **Adopt in a new repo:**
 
-1. Copy [`../../eslint-rules/packed-named-imports.mjs`](../../eslint-rules/packed-named-imports.mjs)
-   into the repo's `eslint-rules/`. Copy the file — do not retype it.
+Rule **`030` ships two hub files** — do not convert one into the other:
+
+| Hub file | Role in target repo |
+|---|---|
+| `projects/coding-standards/docs/tooling/030-lint-format-quality.md` | Full standard (ESLint stack + Fallow). Reference only unless you also copy Fallow setup. |
+| `docs-hub/.cursor/rules/030-formatting.mdc` | **Copy whole** → `<repo>/.cursor/rules/030-formatting.mdc`. Pack-don't-stack for agents; rewrite `globs`. |
+
+1. Copy `projects/coding-standards/eslint-rules/packed-named-imports.mjs` into the target
+   repo's `eslint-rules/`. Copy the file — do not retype it.
 2. Register it in `eslint.config.mjs` for the TS/TSX trees you care about, at
    `maxLineLength: 150`.
-3. Copy [`.cursor/rules/030-formatting.mdc`](../../../../.cursor/rules/030-formatting.mdc) into
-   the target repo **whole** — rewrite `globs` for that repo's layout, but **do not trim** the
-   hook-deps or parameter-list sections. ESLint covers imports only; those sections are what
-   keeps agents from writing Prettier-style signatures. Optionally `@`-import it from
-   `CLAUDE.md` (see [`README.md`](../../README.md)).
-4. Run `npx eslint .` once before committing. The rule reports only
-   one-name-per-line imports, so a clean repo should stay clean; anything it does flag is
-   real.
+3. Copy `docs-hub/.cursor/rules/030-formatting.mdc` into the target repo **whole** —
+   rewrite `globs` for that repo's layout, but **do not trim** the hook-deps or parameter-list
+   sections. ESLint covers imports only; those sections are what keeps agents from writing
+   Prettier-style signatures. Optionally `@`-import it from `CLAUDE.md`.
+4. Run `npx eslint .` once before committing. The rule reports only one-name-per-line imports,
+   so a clean repo should stay clean; anything it does flag is real.
 
-**Changing the rule:** edit the canonical file, then re-run its fixtures from a repo that has
-`eslint` + `@typescript-eslint/parser` installed, and re-copy downstream:
+**Changing the rule:** edit the canonical file under `projects/coding-standards/eslint-rules/`,
+then re-run its fixtures from any checkout that has `eslint` and `@typescript-eslint/parser`
+installed, and re-copy downstream:
 
 ```sh
-cd ~/Desktop/studio
-node ~/coding-standards/eslint-rules/packed-named-imports.test.mjs
+node projects/coding-standards/eslint-rules/packed-named-imports.test.mjs
 ```
-
-Cursor rule template: [`.cursor/rules/030-formatting.mdc`](../../../../.cursor/rules/030-formatting.mdc)
-(relative from this doc — lives at the `docs-hub` repo root).
 
 ---
 
