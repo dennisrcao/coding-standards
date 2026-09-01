@@ -1,5 +1,5 @@
 /**
- * Keep named imports packed, per `docs/030-lint-format-quality.md`. Two shapes
+ * Keep named imports packed, per `docs/tooling/030-lint-format-quality.md`. Two shapes
  * are reported:
  *
  *   1. `onePerLine`    — every specifier sits on its own line (Prettier's shape).

@@ -6,8 +6,8 @@ alwaysApply: false
 
 # Adopting the `100`+ band (what is in force on day one)
 
-The rest of this library tells you **how** to adopt a standard — copy `docs/<NNN>-*.md` into the
-target repo's `.cursor/rules/`, rewrite the globs, `@`-import it. This file tells you **when** each
+The rest of this library tells you **how** to adopt a standard — copy `docs/<category>/<NNN>-*.md`
+into the target repo's `.cursor/rules/`, rewrite the globs, `@`-import it. This file tells you **when** each
 rule inside the `100`+ band starts binding.
 
 That gap matters more here than for the SCSS or Zustand rules. Several docs in this band solve
@@ -212,7 +212,7 @@ Adopting the band into a new repo, with this file's answer applied:
 # 1. Copy WHOLE files — this doc does not scissors them.
 for n in 101-llm-adoption-order 100-llm-call-pathway 105-llm-trust-boundary \
          110-llm-observability 120-prompt-and-context-budget 140-llm-evals; do
-  cp "$STANDARDS/docs/$n.md" ".cursor/rules/$n.mdc"
+  cp "$STANDARDS/docs/llm/$n.md" ".cursor/rules/$n.mdc"
 done
 # 125 and 130 only if the gate question said you need an agent / a queue.
 
@@ -231,7 +231,7 @@ done
 
 Adoption order: `101`. Not every rule in these files is in force yet — `101` says which,
 and names the event that makes each of the rest binding. Canonical copies live in
-`docs-hub/projects/coding-standards/docs/`.
+`docs-hub/projects/coding-standards/docs/` (see [`README.md`](../README.md) for folders).
 ```
 
 The last paragraph is the load-bearing part. Without it the next reader finds five rule files, sees

@@ -196,22 +196,53 @@ const AddNodeButton = ({
   disabled, i, nodeType, nodeDisplayName, onNodeCreateClick, tileId, onActivate,
 }: IAddNodeButtonProps) => {
 
+// GOOD — many destructured props (15+), still packed — not one name per line.
+// Ground truth: collaborative-learning wraps long signatures the same way.
+export function ConsoleButton({
+  label, subLabel, variant = "idle", className, onClick, sfx, fieldView, fieldCamera,
+  borderOuter, borderInner, showBackground = true, showBorderOuter = true, showBorderInner = true,
+  behavior, pinBorderInner = false, pinBorderOuter = false,
+}: ConsoleButtonProps) {
+
 // GOOD — positional params, packed the same way.
 function handleSocketKeyDown(
   e: React.KeyboardEvent<HTMLDivElement>, nodeId: string, socketKey: string,
   side: "input" | "output", reteManager: ReteManager,
 ) {
 
-// BAD — one parameter per line.
+// BAD — one parameter per line. Prettier's default; what LLMs write unprompted.
 function ImagesPage({
   projectId,
   onBack,
   onSelectProducts,
 }: ImagesPageProps) {
+
+// BAD — same mistake at scale. ESLint will not catch this; only this doc + the Cursor rule will.
+export function ConsoleButton({
+  label,
+  subLabel,
+  variant = "idle",
+  className,
+  onClick,
+}: ConsoleButtonProps) {
 ```
 
 Interface and type members are **not** covered — `interface Props { … }` keeps one member per
 line, because each member carries its own type, optionality and doc comment.
+
+##### For agents — the drift after import lint lands
+
+Repos that adopt the ESLint rule often see imports fixed on the first pass, then **params and
+hook deps stay Prettier-shaped forever** — because nothing autofixes them. When you write or
+edit a function signature or hook dependency array:
+
+1. **One line when it fits** under 150 chars (most small components).
+2. **Wrap and pack** when it does not — multiple names per continued line, trailing comma before
+   the closing `}` / `]`.
+3. **Never one name per line** in destructuring, positional params, or dep arrays.
+
+A clean `eslint` run proves **imports only**. Treat packed params and deps as part of the same
+rule, not a separate style preference.
 
 ### `object-curly-newline` is deliberately NOT part of this standard
 
@@ -224,7 +255,7 @@ the packing rule covers imports alone, so on a repo with multi-line barrel files
 `export {useFoo,` … `type Bar,}`, and it cannot touch comment-interleaved export blocks at all.
 
 **Enforcement (imports only):** custom ESLint rule, canonical at
-[`../eslint-rules/packed-named-imports.mjs`](../eslint-rules/packed-named-imports.mjs). Copy
+[`../../eslint-rules/packed-named-imports.mjs`](../../eslint-rules/packed-named-imports.mjs). Copy
 that file into the consuming repo's `eslint-rules/` and wire it as in the config above.
 
 **Hook deps and parameter lists are not linted** — the rule covers `ImportDeclaration` only.
@@ -256,12 +287,15 @@ more names on a line — preferring brace-newline there stays a **review-level**
 
 **Adopt in a new repo:**
 
-1. Copy [`../eslint-rules/packed-named-imports.mjs`](../eslint-rules/packed-named-imports.mjs)
+1. Copy [`../../eslint-rules/packed-named-imports.mjs`](../../eslint-rules/packed-named-imports.mjs)
    into the repo's `eslint-rules/`. Copy the file — do not retype it.
 2. Register it in `eslint.config.mjs` for the TS/TSX trees you care about, at
    `maxLineLength: 150`.
-3. Add the good/bad examples above to that package's `AGENTS.md` or a local
-   `.cursor/rules/030-formatting.mdc` so agents and reviewers see the same bar.
+3. Copy [`.cursor/rules/030-formatting.mdc`](../../../../.cursor/rules/030-formatting.mdc) into
+   the target repo **whole** — rewrite `globs` for that repo's layout, but **do not trim** the
+   hook-deps or parameter-list sections. ESLint covers imports only; those sections are what
+   keeps agents from writing Prettier-style signatures. Optionally `@`-import it from
+   `CLAUDE.md` (see [`README.md`](../../README.md)).
 4. Run `npx eslint .` once before committing. The rule reports only
    one-name-per-line imports, so a clean repo should stay clean; anything it does flag is
    real.
@@ -274,7 +308,7 @@ cd ~/Desktop/studio
 node ~/coding-standards/eslint-rules/packed-named-imports.test.mjs
 ```
 
-Cursor rule template: [`.cursor/rules/030-formatting.mdc`](../../../.cursor/rules/030-formatting.mdc)
+Cursor rule template: [`.cursor/rules/030-formatting.mdc`](../../../../.cursor/rules/030-formatting.mdc)
 (relative from this doc — lives at the `docs-hub` repo root).
 
 ---

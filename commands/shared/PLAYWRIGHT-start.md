@@ -1,4 +1,4 @@
-Start the shared Playwright MCP server in a persistent tmux session so every Claude Code instance across every repo drives ONE browser window, each session in its own tab.
+Start the shared Playwright MCP server in a persistent tmux session so every Claude Code instance across every repo drives ONE browser window. Each session claims its own tab — a step the session must take, see "Working in a shared window".
 
 ## Constants
 - Session: `playwright`
@@ -8,11 +8,15 @@ Start the shared Playwright MCP server in a persistent tmux session so every Cla
 - Output dir: `$HOME/.cache/pw-mcp/shared/output`
 
 One server, one browser, one window. Every Claude Code session in any repo is an
-HTTP client of this server. Each client gets its own tab and its own current-tab
-pointer, so sessions run in parallel without stealing each other's navigation.
+HTTP client of this server, and each client tracks its own current tab.
+
+**The server does not hand a new client a tab of its own.** A client with no tab
+adopts whatever page is already open, so two sessions that both start with
+`browser_navigate` end up driving the same tab, silently. Parallel sessions work,
+but they need one convention — see "Working in a shared window" below.
 
 The browser is **not** launched when this command runs — it launches on the first
-client's first `browser_navigate`, and closes when the last client disconnects.
+client's first browser tool call, and closes when the last client disconnects.
 That is the server's own lifecycle; do not try to manage the browser here.
 
 ## Prerequisite
@@ -60,7 +64,7 @@ Two flags here are load-bearing — do not "simplify" them:
 - **`--shared-browser-context`, never `--isolated`.** Both make the server reuse
   one browser, but `--isolated` hands each client a *new context* — which Chrome
   renders as a new window. `--shared-browser-context` hands every client
-  `browser.contexts()[0]`, giving one window with many tabs.
+  `browser.contexts()[0]`, giving one window in which every client can open tabs.
 - **`--browser chrome`** resolves to `/Applications/Google Chrome.app/…/Google Chrome`,
   which likewise does not match the `pkill -f Chromium` in those same reset steps.
 - **`--host 127.0.0.1` and `--allowed-hosts`.** Both were found the hard way and
@@ -119,16 +123,42 @@ This command is safe to run multiple times (idempotent).
 
 ## Working in a shared window
 
-Every session shares one tab list and one cookie jar. Two rules keep parallel
-sessions from interfering:
+Every session shares one tab list and one cookie jar.
 
-- **Navigate in your own tab.** Your `browser_navigate` and `browser_snapshot`
-  act on the tab this session owns; that is already isolated per client.
+**Claim a tab before you navigate — this is the one that bites.** A client's
+current-tab pointer is per session, but it starts out empty, and `_onPageCreated`
+fills an empty pointer with the first page it sees, including pages another session
+opened. `browser_navigate` only creates a page when that pointer is empty. So session
+A navigates and makes tab 1, session B's first call adopts tab 1, and B then drives
+A's tab for the rest of its life, with no error anywhere.
+
+So a session's **first** Playwright action is always:
+
+```
+browser_tabs({ action: "new", url: "http://localhost:<your port>/" })
+```
+
+`action: "new"` points the pointer at the page it just created; after that plain
+`browser_navigate` stays put. Opening a tab never disturbs a session that already
+holds one, because the pointer is only auto-filled when empty.
+
+Then:
+
 - **Never close a tab you did not open.** `browser_tabs` lists *every* session's
   tabs, so closing by index can close a tab another agent is mid-test in.
+  `action: "select"` is intrusive too — it calls `bringToFront()` and physically
+  raises that tab in the window another agent is watching.
+- **Do not close your own tab and keep working.** Closing your current tab does not
+  leave you with none — the pointer slides to the neighbouring tab, which is somebody
+  else's. Claim a fresh one with `action: "new"` first.
+- `browser_close` is safe: it tears down only your own backend, and the shared browser
+  survives while any other client is attached.
 
 Cookies are still separated by origin, and every checkout serves on a distinct
 port, so logins do not bleed between repos.
+
+Full rationale, with the source excerpts:
+`docs-hub/projects/coding-standards/docs/process/060-playwright-mcp-isolation.md`.
 
 ## Cross-window observability
 

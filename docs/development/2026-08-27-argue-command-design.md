@@ -279,7 +279,7 @@ Deleting the two commands breaks three tracked things that name them:
    `claude/argue.md` and `cursor/argue.md`, and must **not** link `shared/argue-protocol.md`,
    which is not a command. Its existing dangling-symlink sweep removes the four stale symlinks
    automatically once the repo files are gone — no manual `rm` needed.
-3. **`docs/090-slash-commands.md`** (hand-written) and **`docs/091-slash-commands-claude-vs-cursor.md`**
+3. **`docs/process/090-slash-commands.md`** (hand-written) and **`docs/process/091-slash-commands-claude-vs-cursor.md`**
    (generated) both document the `/ask` + `/CROSSCHECK` pair by name, including the "two files,
    on purpose" table row and a full verbatim source dump. `090` is edited by hand; `091` is
    regenerated. `README.md:69` describes `091` in terms of `/ask` and `/CROSSCHECK` and needs the

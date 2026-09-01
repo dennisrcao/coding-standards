@@ -14,18 +14,15 @@ flags, selections, session handles) stays in Zustand — see `020-zustand.md`. R
 backend (Convex, Firebase) use that backend's subscription hooks instead; don't stack a query library
 on top.
 
-This standard exists because the alternative is already in the codebase and it is expensive:
-Acme's studio app carries ~50 hand-rolled `fetchXxxAM()` wrappers, the same
-`useState(data/loading/error)` + `useEffect(cancelled)` quadruple in nearly every screen, and server
-state hand-cached in Zustand behind manual `loadSeq` tokens.
+This standard exists because the alternative is common and expensive: dozens of hand-rolled fetch
+wrappers, the same `useState(data/loading/error)` + `useEffect(cancelled)` quadruple in nearly every
+screen, and server state cached in client stores behind manual sequence guards.
 
 > **This standard governs *how* to use TanStack Query — not *whether* to adopt it.** Adoption is a
-> per-repo call that needs a real read of that codebase's write path, not a policy handed down here.
-> Acme ran that evaluation ([`projects/app/docs/__tanstack-query-evaluation.md`](../../acme/docs/__tanstack-query-evaluation.md),
-> 2026-08-06) and concluded **not
-> now**: every benefit landed on the read path while every cost landed on the write path, which is
-> where its actual pain is. That is a legitimate answer. What is *not* legitimate is bolting the
-> library onto one feature — adopt it with the `queryOptions` factory below, or not at all.
+> per-codebase call — weigh read-path pain (duplicate fetches, stale UI, loading boilerplate) against
+> write-path cost (mutations, optimistic updates, invalidation surface). A codebase that is mostly
+> writes with heavy local document state may legitimately defer adoption. What is *not* legitimate is
+> bolting the library onto one feature — adopt it with the `queryOptions` factory below, or not at all.
 
 ### Query never owns editable state
 
@@ -38,7 +35,8 @@ and reconciliation rules a cache has no opinion about. Putting it behind `useQue
 refetch can silently overwrite unsaved work.
 
 This is why "don't hand-roll the cache in Zustand" (`020-zustand.md`) is **not** an argument against
-a store that owns a document. Acme's `store.ts` is the **local document** kind, not the server cache.
+a store that owns a document. A session store holding the artifact the user is actively editing is
+the **local document** kind, not the server cache.
 
 **Upstream source of truth:** TkDodo (TanStack Query maintainer) — <https://tkdodo.eu/blog>, whose
 guidance every rule below is derived from. Where this file and that blog disagree, **the blog wins
@@ -194,7 +192,7 @@ lacks fields the detail endpoint returns? Use `placeholderData`.
 ## Further reading
 
 <https://tkdodo.eu/blog> — the source for everything above. This standard deliberately covers only the
-rules that keep coming up in our repos. Go upstream for `select` and data transformation, render
+rules that keep coming up in practice. Go upstream for `select` and data transformation, render
 optimization, error handling, Suspense/React 19, infinite queries, WebSockets,
 offline/`networkMode`, forms, and testing.
 
@@ -205,33 +203,3 @@ that optimistically updates one cache but invalidates two.
 Posts worth reading in full before writing much query code: *Practical React Query*, *Effective React
 Query Keys*, *The Query Options API*, *Mastering Mutations*, and *Automatic Query Invalidation after
 Mutations*.
-
-## Cross-check revisions
-
-- **2026-08-06** — Cross-checked against `projects/app/docs/__tanstack-query-evaluation.md`. All its line-referenced
-  claims verified against app-monorepo-1 (file sizes exact; the StrictMode no-cancellation-guard at
-  `use-all-project-details.ts:60-68` is verbatim). Adopted two corrections: this standard no longer
-  claims the `AGENTS.md` contradiction is settled "in favour of adoption" — adoption is a per-repo
-  call, and Acme's evaluation says not now — and a third state category (**local document**) was
-  added, since Acme's `store.ts` owns edited state, not a cache.
-- **2026-08-06** — Cross-checked against a two-agent panel critique alongside `020-zustand.md`. The
-  duplicated three-kinds-of-state table was removed in favour of a link to `020` (the canonical copy),
-  per `README.md` "cross-link rather than restate" — the two copies had already drifted in three cells,
-  including dropping reactive backends as a legitimate server-cache owner. `020`'s unconditional
-  "Fetching over HTTP → TanStack Query" was made conditional on adoption, so it no longer contradicts
-  this file's *how, not whether* framing. Rejected: narrowing this file's globs away from `*-store.ts`
-  (the "server state cached in Zustand" rule targets exactly those files). Two follow-on fixes for
-  internal consistency: the opening line no longer reads as a flat mandate, and the precedence clause
-  now says later posts supersede earlier ones — which the custom-hook rule already relied on
-  implicitly. Still open: this file sets no house `staleTime` floor number, while the debounce rule
-  right below it does.
-- **2026-08-06** — Cross-checked against a Cursor (Grok 4.5) critique. Nine corroboration claims
-  verified and left unchanged. Adopted one: *Practical React Query* (2020) recommends a custom hook
-  per query and carries no supersession notice, so the Don't now names it explicitly as superseded by
-  *The Query Options API* / *Creating Query Abstractions*. Rejected the accompanying claim that the
-  rule contradicted upstream — the bullet already permitted logic-sharing hooks.
-- **2026-08-29** — Clarified the custom hook boundary to explicitly permit `hooks/queries/` when
-  managing active subscriptions (e.g. Supabase Realtime / WebSocket events invalidating on updates),
-  composed mutations, derived domain lookups, or kiosk polling intervals. Forcing bare `queryOptions`
-  onto subscription-managing hooks violates separation of concerns by pushing connection lifecycle
-  into UI components.

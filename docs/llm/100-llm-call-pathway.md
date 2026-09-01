@@ -14,7 +14,7 @@ Everything between "I have an input" and "I have a value I can trust." What the 
 then *allowed to do* is [`105-llm-trust-boundary.md`](105-llm-trust-boundary.md); whether the path
 is alive is [`110-llm-observability.md`](110-llm-observability.md).
 
-**Note on overlap:** [`005-fastapi-python.md`](005-fastapi-python.md) globs `packages/**/*.py`, so
+**Note on overlap:** [`005-fastapi-python.md`](../backend/005-fastapi-python.md) globs `packages/**/*.py`, so
 in a `packages/agents/` layout both files fire. That is correct, not a conflict — `005` governs
 transport and framework, this file governs the model call inside it.
 

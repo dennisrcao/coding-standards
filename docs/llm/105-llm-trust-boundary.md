@@ -17,7 +17,7 @@ can be perfectly well-typed and still be an instruction an attacker wrote.
 **Upstream source of truth:** OWASP's *Top 10 for LLM Applications* (LLM01 prompt injection,
 LLM06 excessive agency) and the major providers' tool-use guidance. This file is cited against
 published domain guidance rather than a repo pattern, the way
-[`020-zustand.md`](020-zustand.md) cites TkDodo — because the four implementations that seeded this
+[`020-zustand.md`](../frontend/020-zustand.md) cites TkDodo — because the four implementations that seeded this
 band do **not** have this covered, and the gap is what prompted the document.
 
 | This file is… | Precedence |

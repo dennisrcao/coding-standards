@@ -1,5 +1,5 @@
 ```yaml
-description: Run one shared Playwright MCP server for the whole workspace, so every Claude Code session across every repo drives a single browser window and works in its own tab instead of each repo spawning its own browser.
+description: Run one shared Playwright MCP server for the whole workspace, so every Claude Code session across every repo drives a single browser window. Each session must claim its own tab before navigating, or two sessions silently drive the same one.
 globs:
   - "**/.mcp.json"
 alwaysApply: false
@@ -56,9 +56,12 @@ From `@playwright/mcp` v0.0.79 (`playwright-core/lib/coreBundle.js`):
   launch total.
 - Each connected client receives `browser.contexts()[0]` — the **same** context, so
   one window rather than one window per client.
-- Each client still gets its **own `BrowserBackend`**, so every session tracks its
-  own current tab. Sessions genuinely run in parallel; one session's navigation
-  does not move another's tab.
+- Each client still gets its **own `BrowserBackend`** and its own `Context`, so the
+  current-tab pointer (`Context._currentTab`) is per session. **But nothing hands a
+  client a tab of its own** — a client with no tab adopts whatever page it finds. Two
+  sessions that both open with `browser_navigate` end up driving the same tab. See
+  "Claim a tab" below; this is the one thing to get right with more than one session
+  attached.
 - Teardown is `if (sharedBrowserPromise && clientCount > 0) return;` — the browser
   survives while any client is attached and closes when the last one leaves. Nothing
   needs to manage the browser lifecycle by hand.
@@ -75,13 +78,61 @@ Do not "simplify" these; each was found by a failure.
 | `node …/@playwright/mcp/cli.js` | Invoke the module, **not** the `playwright-mcp` bin wrapper. Several repos ship a reset step containing `pkill -f playwright-mcp`; the wrapper's path matches that pattern and the module path does not, so the shared server survives another repo's reset. |
 | `--browser chrome` | Resolves to `/Applications/Google Chrome.app/…/Google Chrome`, which likewise does not match the `pkill -f Chromium` in those same reset steps. |
 
+## Claim a tab, or two sessions share one
+
+**A new client is not given a tab. It inherits one.** The setup does not look like it
+does this, which is why it costs an afternoon every time it is rediscovered.
+
+On a client's first tool call, `Context._initializeBrowserContext()` adopts every page
+already open in the shared context, and subscribes to every page any client opens later:
+
+```js
+for (const page of browserContext.pages())
+  this._onPageCreated(page);
+this._disposables.push(eventsHelper.addEventListener(browserContext, "page", page => this._onPageCreated(page)));
+```
+
+and `_onPageCreated` claims the first page it sees as *this* client's current tab:
+
+```js
+this._tabs.push(tab2);
+if (!this._currentTab)
+  this._currentTab = tab2;   // <- someone else's tab
+```
+
+`browser_navigate` calls `ensureTab()`, which opens a new page **only when
+`_currentTab` is unset**. So: session A navigates and creates tab 1; session B's first
+call adopts tab 1, because B has no tab yet; B navigates and drives *A's* tab. Whichever
+session moves second silently takes over the first one's tab, for the rest of its life.
+It presents as two agents fighting over one tab, with no error anywhere.
+
+**The rule: a session's first Playwright action is `browser_tabs` with
+`action: "new"` — never `browser_navigate`.**
+
+```
+browser_tabs({ action: "new", url: "http://localhost:5173/" })
+```
+
+`action: "new"` calls `context.newTab()`, which points `_currentTab` at the page it just
+created. After that, plain `browser_navigate` stays in that tab for the whole session.
+And because `_onPageCreated` assigns only when the pointer is empty, a session opening a
+tab never disturbs a session that already holds one. The parallelism is real, but it is
+a **convention the client must follow**, not a property the server provides.
+
 ## Working in a shared window
 
 One context means one tab list and one cookie jar.
 
-- **Navigate in your own tab.** Each client's current-tab pointer is already isolated.
 - **Never close a tab you did not open.** `browser_tabs` lists *every* session's
-  tabs, so closing by index can close a tab another agent is mid-test in.
+  tabs, so closing by index can close a tab another agent is mid-test in. `select` is
+  intrusive for the same reason — it calls `page.bringToFront()`, raising that tab in
+  the window another agent is watching.
+- **Do not close your own tab and keep working.** `_onPageClosed` reassigns a dead
+  pointer with `this._currentTab = this._tabs[Math.min(index, this._tabs.length - 1)]`,
+  so closing your tab does not leave you with none — it leaves you holding *somebody
+  else's*. Claim a fresh one with `action: "new"` first.
+- **`browser_close` is safe.** It tears down only the calling client's backend; the
+  shared browser survives while `clientCount > 0`.
 - **Keep the shared profile lean.** Sign in only to what testing needs. The old
   per-port profiles had accreted live sessions for Gmail, the AWS console, Slack,
   GitHub, Venmo and brokerage accounts; in a browser every repo's agent shares,
@@ -103,6 +154,11 @@ ps -eo args= | grep "[G]oogle Chrome.app/Contents/MacOS/Google Chrome " \
 
 Drive two sessions in two different repos and confirm the browser count goes
 `0 → 1 → 1`, not `0 → 1 → 2`.
+
+Then check the *tab* half, which the process counts cannot see: have both sessions
+claim a tab and navigate somewhere distinct, and confirm `browser_tabs`
+`action: "list"` shows two tabs on two URLs — not one tab wearing whichever URL was
+requested last.
 
 ## Anti-patterns
 
