@@ -56,6 +56,43 @@ Reference implementation lives in `docs-hub/site/src/lib/hot-keys.ts`.
 - **Don't `preventDefault()` unconditionally** — only when the handler actually
   acted; otherwise you swallow keystrokes the page still needs.
 
+## Registry: write the key down before you bind it
+
+The hook alone answers "how do I bind a key", not "which keys are already taken".
+That knowledge tends to live in a comment in whichever component was written
+first, which goes stale the moment someone adds a shortcut somewhere else. So the
+app that owns the shortcuts also owns a table, and registers through it:
+
+```ts
+export const SHORTCUTS = {
+  personal:  { combo: "cmd+j", where: "anywhere",        does: "Toggle the Personal dashboard" },
+  sidebar:   { combo: "cmd+b", where: "project screens", does: "Show / hide the sidebar" },
+  save:      { combo: "cmd+s", where: "board · diagram", does: "Save" },
+} as const;
+
+export type ShortcutCombo = (typeof SHORTCUTS)[keyof typeof SHORTCUTS]["combo"];
+
+/** Same hook, narrowed: a combo that is not in the table does not compile. */
+export function useShortcuts(map: Partial<Record<ShortcutCombo, HotkeyHandler>>): void {
+  useHotkeys(map);
+}
+```
+
+```tsx
+useShortcuts({
+  [SHORTCUTS.sidebar.combo]: () => { toggleSidebar(); return true; },
+});
+```
+
+- **A table, not a uniqueness constraint.** Matching is per listener, so two
+  screens may claim the same combo — ⌘S saves whichever of them is mounted. The
+  `where` column is what records that, and reviewing it is how you notice a real
+  collision.
+- **Narrow the wrapper, not the hook.** `useHotkeys` and `HotkeyMap` keep their
+  generic signatures so this file stays copy-pasteable between repos; each app's
+  own combos are its own type.
+- Reference: `docs-hub/site/src/lib/hot-keys.ts`.
+
 ## Element-scoped keys are NOT hotkeys
 
 Local UX on a specific control — **Enter** to submit a create form, **Escape** to
