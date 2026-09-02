@@ -64,7 +64,7 @@ view, what Cursor ignores in a shared file, and the bar a command has to clear t
 
 | Command | Agents | What it is for |
 |---|---|---|
-| `/close-out` | both | I've signed off — **land it.** Commit, PR, review, CI, merge to the repo's base branch, then leave the checkout on that branch instead of stranded on the feature branch. Stops for a yes when merging fires a deploy. |
+| `/close-out` | both | I've signed off — **land it.** Commit, PR, review, CI, merge to the repo's base branch, then leave the checkout on that branch instead of stranded on the feature branch. Stops for a yes when merging fires a deploy. Closes out the `docs-hub` ticket that drove the work — strike, then archive or mark deferred. |
 | `/ship` | both | Take a behavior from wherever it is now through review and staging to **production**, and prove both sides landed. |
 | `/pr-description` | both | Ticket link + a before/after behavior table. Nothing else. |
 | `/ask` | both, two files | Ask the *other* agent to critique this without opening its window — then verify every claim before adopting it. |

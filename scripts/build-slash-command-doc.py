@@ -80,7 +80,8 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 
 `/close-out` means one thing now: **I have signed off on this behavior, land it.** Commit what is
 left, open a PR, review it, fix what should be fixed, wait for CI, merge to the repo's base branch,
-and leave the checkout on that base branch rather than stranded on the merged feature branch.
+leave the checkout on that base branch rather than stranded on the merged feature branch, and close
+out the `docs-hub` ticket that drove the work.
 
 It is **repo-agnostic**, which is what lets it be one file. Three things it resolves rather than
 assumes:
@@ -96,13 +97,22 @@ stopping. If something does, it stops and names what will publish and where. On 
 to `staging` fires the frontend deploy to the staging, client-staging and admin-staging hosts, plus
 the docs hub and the AM image — so `/close-out` always stops there for a yes.
 
+**Merging is also what fires the hub's done-gate.** Step 9 strikes the landed steps in the
+`docs-hub` markdown that drove the work, then either archives it to
+`docs/archive/<day the PR merged>/✅_<slug>.md` or — if something shipped with leftovers — marks it
+`deferred` and leaves it in Development. It is skipped silently when no hub doc drove the work, and
+it commits in the hub with explicit paths, because that repo has several agents writing to it at
+once. That lifecycle is the hub's, not the code repo's: `~/Desktop/docs-hub/AGENTS.md` and
+`.cursor/rules/040-plan-lifecycle.mdc` remain the source of truth, and a `app-monorepo-N` checkout
+loads neither.
+
 `/close-out` goes to the base branch. `/ship` goes to production. They are separate on purpose.
 
 > **Historical note.** `/close-out` used to be a *false cognate*: a session-reporting command in
 > Claude and a merge-to-staging command in Cursor. Typing it in the wrong window did not fail — it
 > did something confidently, and the something was not what was wanted. That is resolved by the two
 > meanings becoming one, not by a disambiguation gate. The old session-report behaviour survives as
-> Step 9, the receipt.
+> Step 10, the receipt.
 
 ## `/ask` is the one that cannot be shared
 
