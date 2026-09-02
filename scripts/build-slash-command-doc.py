@@ -10,13 +10,13 @@ OUT = pathlib.Path('~/coding-standards/docs'
 # via symlink, so reading either gives identical bytes.
 SRC = {
     'closeout':   HOME / '.claude/commands/close-out.md',
-    'xcheck':     HOME / '.claude/commands/CROSSCHECK.md',
     'ship':       HOME / '.claude/commands/ship.md',
     'prdesc':     HOME / '.claude/commands/pr-description.md',
     'claude_ask': HOME / '.claude/commands/ask.md',
     'cursor_ask': HOME / '.cursor/commands/ask.md',
     'docsupd':    HOME / '.claude/commands/docs-update.md',
     'updmd':      HOME / '.claude/commands/update-markdown.md',
+    'explain':    HOME / '.claude/commands/explain.md',
 }
 missing = [str(v) for v in SRC.values() if not v.exists()]
 if missing:
@@ -30,7 +30,7 @@ def block(key):
     return "`````markdown\n" + txt[key] + "`````\n"
 
 doc = f"""```yaml
-description: The personal slash commands shared between Claude Code and Cursor — which are one file, which cannot be, how each agent loads them, and the full verbatim source of /close-out, /CROSSCHECK and /ask
+description: The personal slash commands shared between Claude Code and Cursor — which are one file, which cannot be, how each agent loads them, and the full verbatim source of /close-out and /ask
 globs:
 alwaysApply: false
 ```
@@ -69,12 +69,12 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 | Slash command | Claude Code | Cursor | Shared? |
 |---|---|---|---|
 | `/close-out` | `~/.claude/commands/close-out.md` | `~/.cursor/commands/close-out.md` | **one file** — {n['closeout']} lines |
-| `/CROSSCHECK` | `~/.claude/commands/CROSSCHECK.md` | `~/.cursor/commands/CROSSCHECK.md` | **one file** — {n['xcheck']} lines |
 | `/ship` | `~/.claude/commands/ship.md` | `~/.cursor/commands/ship.md` | **one file** — {n['ship']} lines |
 | `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — {n['prdesc']} lines |
 | `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`. {n['claude_ask']} lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`. {n['cursor_ask']} lines. | **two files, on purpose** |
 | `/docs-update` | `~/.claude/commands/docs-update.md` — {n['docsupd']} lines | — none — | Claude only |
 | `/update-markdown` | `~/.claude/commands/update-markdown.md` — {n['updmd']} lines | — none — | Claude only |
+| `/explain` | `~/.claude/commands/explain.md` — {n['explain']} lines | — none — | Claude only |
 
 ## `/close-out` lands the work — in either agent
 
@@ -113,9 +113,12 @@ Merging them into one file with both directions listed would introduce a silent 
 that misidentifies itself shells out to *itself*, and returns its own reasoning as a second
 opinion. Nothing errors. Two files make that impossible.
 
-`/ask` and `/CROSSCHECK` remain a **pair**: `/ask` fetches the critique, `/CROSSCHECK` refuses to
-trust it. That split exists because an LLM critique reads as authoritative and is frequently wrong
-about the codebase — see [050-anti-slop.md](../tooling/050-anti-slop.md).
+`/ask` fetches the critique **and then refuses to trust it**: its Step 4 decomposes the critique
+into atomic falsifiable claims, verdicts each one against the real code with `file:line` evidence,
+and edits the plan only for what survived. That verification used to be a second command,
+`/CROSSCHECK`; it is now inlined in both halves of the pair, because a critique that arrives
+without it reads as authoritative and is frequently wrong about the codebase — see
+[050-anti-slop.md](../tooling/050-anti-slop.md).
 
 ## How each agent loads them
 
@@ -141,9 +144,9 @@ Two consequences worth internalising:
 
 - **A Cursor command starts colder.** No `git status`, no branch, no PR list pre-loaded. Anything a
   Claude command gets for free in its frontmatter, a Cursor command must go fetch — which is why
-  the shared commands also say in prose what their frontmatter already collects. `/CROSSCHECK`'s
-  Step 0 is explicit about it: *"the context block above is auto-collected in Claude Code but not
-  in Cursor — if it is empty, run `pwd` and `git rev-parse` yourself."*
+  the shared commands also say in prose what their frontmatter already collects — `/close-out`'s
+  Step 0 restates its whole base-branch resolution as runnable `sh`, rather than leaning on the
+  `Base branch:` line its frontmatter collects for Claude and not for Cursor.
 - **`allowed-tools` has no Cursor equivalent.** A Cursor command cannot be sandboxed by its own
   file. The safety has to be written as an instruction (`--permission-mode plan`, "never use
   `--dangerously-skip-permissions`", "never merge red") and it is honoured by persuasion, not
@@ -170,19 +173,12 @@ inode, symlinked to `commands/shared/close-out.md`.
 {block('closeout')}
 ---
 
-## `/CROSSCHECK` — full source
-
-Also one file. A critique is a **claim, not a verdict** — this is the command that makes that
-stick, on whichever side received it.
-
-{block('xcheck')}
----
-
 ## `/ask` — full source
 
 A **mirror pair**: each launches the other agent headlessly, read-only, with the plan carried
 inline because the other agent sees none of this conversation. Neither adopts what comes back
-without handing it to `/CROSSCHECK` first. These are the only two files here that are not shared.
+until it has verified it claim by claim against the code. These are the only two files here that
+are not shared.
 
 ### Claude Code
 
@@ -219,4 +215,4 @@ fire on intent, not only on a typed slash.
 
 OUT.write_text(doc)
 print(f"wrote {OUT.name}: {len(doc.splitlines())} lines")
-print(f"embedded {len([k for k in ('closeout','xcheck','claude_ask','cursor_ask')])} sources verbatim ✓")
+print(f"embedded {len([k for k in ('closeout','claude_ask','cursor_ask')])} sources verbatim ✓")

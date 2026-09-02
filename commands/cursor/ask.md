@@ -42,7 +42,8 @@ unverified critique is a liability. For each claim, open the file it names and c
 thing it describes exists. Report which claims held up and which did not, with file:line
 evidence. Do not soften a refutation into "both views have merit" — if it is wrong, say so.
 
-`/CROSSCHECK` is that workflow written out in full — atomic claims, a verdict table with
-`file:line` evidence, and plan edits only for what survived. Use it rather than improvising the
-verification, especially when the critique is long. `/ask` and `/CROSSCHECK` are a pair: one gets
-the critique, the other refuses to trust it.
+Work it as **atomic claims, not a verdict**, especially when the critique is long: split it into
+a numbered list of falsifiable assertions, give each one CONFIRMED / REFUTED / MISREAD /
+UNVERIFIABLE with `file:line` evidence, print that table before touching anything, and edit the
+plan only for what survived. If nothing was confirmed, say the plan stands as written. `/ask`
+fetches the critique; this step is what refuses to trust it.

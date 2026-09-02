@@ -21,8 +21,8 @@ Writing a command *is* committing it; there is no separate backup step.
 A file named `foo.md` in that folder becomes `/foo`. Claude Code also surfaces it in the skills
 list, so it can fire on intent, not just on the typed slash.
 
-**Most of these are shared with Cursor** — `/close-out`, `/CROSSCHECK`, `/ship` and
-`/pr-description` are literally one file symlinked into both agents, so they cannot drift. Only
+**Most of these are shared with Cursor** — `/close-out`, `/ship` and `/pr-description` are
+literally one file symlinked into both agents, so they cannot drift. Only
 `/ask` is deliberately two files, because each side has to name the *other* agent's binary. See
 [091-slash-commands-claude-vs-cursor.md](091-slash-commands-claude-vs-cursor.md) for the two-agent
 view, what Cursor ignores in a shared file, and the bar a command has to clear to be shareable.
@@ -66,25 +66,29 @@ view, what Cursor ignores in a shared file, and the bar a command has to clear t
 |---|---|---|
 | `/close-out` | both | I've signed off — **land it.** Commit, PR, review, CI, merge to the repo's base branch, then leave the checkout on that branch instead of stranded on the feature branch. Stops for a yes when merging fires a deploy. |
 | `/ship` | both | Take a behavior from wherever it is now through review and staging to **production**, and prove both sides landed. |
-| `/CROSSCHECK` | both | Another LLM critiqued my plan — verify its claims against the codebase, then push back or update the plan. |
 | `/pr-description` | both | Ticket link + a before/after behavior table. Nothing else. |
 | `/ask` | both, two files | Ask the *other* agent to critique this without opening its window — then verify every claim before adopting it. |
 | `/docs-update` | Claude | Sweep a project's `docs-hub` `docs/development/` — verify each plan against the real repo, strike what landed, archive what's done, refresh section READMEs. **Full source below.** |
 | `/update-markdown` | Claude | Cross off what we actually implemented in the plan markdown we've been following; mark finished sections `✅`. |
+| `/explain` | Claude | I'm confused — explain it as a two-column table: how it behaves today vs. how it would behave if we built it. Explanation only, never edits. |
 
 `/close-out` and `/ship` are the two halves of promotion, and they are deliberately separate:
 `/close-out` goes to the **base branch** (`staging` on app-monorepo, `main` elsewhere), `/ship`
 goes to **production**. Neither one can be talked into doing the other's job.
 
-`/ask` and `/CROSSCHECK` are a pair: `/ask` gets the critique, `/CROSSCHECK` refuses to trust it.
-That split exists because an LLM critique reads as authoritative and is frequently wrong about the
-codebase — see [`050-anti-slop.md`](../tooling/050-anti-slop.md).
+`/ask` gets the critique **and then refuses to trust it** — its Step 4 breaks the critique into
+atomic falsifiable claims, verdicts each against the real code with `file:line` evidence, and edits
+the plan only for what survived. That verification was its own command, `/CROSSCHECK`, until
+2026-09-02; it is now inlined in both halves of `/ask`, because an LLM critique reads as
+authoritative and is frequently wrong about the codebase — see
+[`050-anti-slop.md`](../tooling/050-anti-slop.md).
 
 ## Planned: `/argue` (not shipped)
 
-Design approved 2026-08-27; **not implemented**. Live pair remains `/ask` + `/CROSSCHECK`.
+Design approved 2026-08-27; **not implemented**. What is live is `/ask`, which now carries its own
+verification step inline.
 
-`/argue` replaces both with one **bounded two-round** loop: opponent objects → we verify every
+`/argue` replaces it with one **bounded two-round** loop: opponent objects → we verify every
 claim against real code → rebuttal with `file:line` evidence → opponent concedes or
 counter-examples. At most two opponent CLI calls. Plan markdown only — no code edits, no
 commit/push.
@@ -109,13 +113,13 @@ commit SHA. Anything still OPEN / UNVERIFIABLE is written into the plan under
 |---|---|
 | `commands/shared/argue-protocol.md` | **new** — engine (rounds, verdicts, report, plan edits); **not** a slash command, not symlinked |
 | `commands/claude/argue.md` / `commands/cursor/argue.md` | **new** — thin wrappers; each names the *other* agent's binary |
-| `commands/claude/ask.md`, `commands/cursor/ask.md`, `commands/shared/CROSSCHECK.md` | **delete** |
+| `commands/claude/ask.md`, `commands/cursor/ask.md` | **delete** |
 
 Also update `scripts/link-slash-commands.sh` and `scripts/build-slash-command-doc.py` (they hardcode
-ask/CROSSCHECK today), then regenerate this companion doc (`091`).
+`ask` today), then regenerate this companion doc (`091`).
 
-Verify-only mode (pasted critique / screenshot) preserves today's `/CROSSCHECK` one-way use case
-with no rebuttal channel.
+Verify-only mode (pasted critique / screenshot) preserves the one-way use case `/ask` Step 4 covers
+today, with no rebuttal channel.
 
 ## Where the house rules they enforce actually live
 

@@ -52,9 +52,9 @@ the single most likely way for this command to produce confident nonsense.
 screenshot, no copy-paste. A different model family reviewing the same code is worth
 real money — it doesn't share my blind spots or my framing.
 
-Then it hands the critique to `/CROSSCHECK`, because **a critique is a claim, not a
-verdict.** Cursor is confidently wrong often enough that nothing it says gets adopted
-unverified.
+Then it **verifies that critique before any of it is adopted**, because a critique is a
+**claim, not a verdict.** Cursor is confidently wrong often enough that nothing it says gets
+adopted unverified. Step 4 is that verification, and it is not optional.
 
 ## Step 1 — Decide what's being reviewed
 
@@ -109,20 +109,58 @@ Notes that matter:
 Save the raw output to a file and tell me the path, so it survives compaction:
 
 ```bash
-mkdir -p "${TMPDIR:-/tmp}/crosscheck"
-# write output to ${TMPDIR:-/tmp}/crosscheck/cursor-<short-topic>.md
+mkdir -p "${TMPDIR:-/tmp}/ask-critiques"
+# write output to ${TMPDIR:-/tmp}/ask-critiques/cursor-<short-topic>.md
 ```
 
-## Step 4 — Hand off to verification
+## Step 4 — Verify it before adopting any of it
 
 Print the critique in full first — I want to see what it actually said, unfiltered.
 
-Then **immediately run the `/CROSSCHECK` workflow on it** (the command at
-`~/.claude/commands/CROSSCHECK.md`): decompose it into atomic falsifiable claims, verify
-each one against the real code, and report the verdict table before changing anything.
+Then work through it in this order. Do not skip this because the critique sounds plausible;
+sounding plausible is precisely what makes an unverified critique dangerous.
 
-Do not skip this because the critique sounds plausible. Sounding plausible is precisely
-what makes an unverified critique dangerous.
+1. **Decompose it into atomic, falsifiable claims.** A numbered list, one row per assertion.
+   Split compound complaints apart — "this is racy and also the store is keyed wrong" is two
+   claims. Anything not checkable against the codebase (style preferences, "consider also…",
+   vague hedges) gets one line at the end as *unfalsifiable — ignored*.
+
+2. **Check each claim against the real code.** Open the file and function it names; if it names
+   none, find the code yourself with Grep/Glob. Other models hallucinate file paths, prop names
+   and hook signatures constantly — a claim about `useSessionStore` is dead on arrival if that
+   hook does not exist. Run something where you can: tests, a typecheck, `git log -S` for when a
+   line arrived, `gh pr view` for prior review context. Evidence beats reasoning. Also check that
+   the plan actually says what the critique says it says — a large fraction of cross-model
+   critiques attack a misreading of the plan.
+
+3. **Give every claim one verdict.** Never write one you did not verify; "probably fine" is not a
+   verdict, go look.
+
+   | Verdict | Meaning |
+   | --- | --- |
+   | **CONFIRMED** | Verified true against the code. The plan is wrong or incomplete here. |
+   | **REFUTED** | Verified false. Name the specific evidence that kills it. |
+   | **MISREAD** | True of some other code, or of a plan that is not this one. |
+   | **UNVERIFIABLE** | Cannot be settled from the codebase — a product or design call. Say whose. |
+
+4. **Print the verdict table before touching the plan.** The evidence column is `file.ts:line`, a
+   command's real output, or a commit SHA — not prose. Then: for each REFUTED / MISREAD claim, one
+   short paragraph on what Cursor got wrong and what is actually true — do not soften it into "both
+   perspectives have merit"; for each CONFIRMED claim, what the plan has to change; for each
+   UNVERIFIABLE one, a question to me.
+
+5. **Edit the plan only for CONFIRMED claims.** Surgically — fix the wrong step, add the missing
+   one, correct the wrong path — preserving the plan's existing structure, heading style and voice.
+   Add a dated entry under `## Cross-check revisions` at the bottom, one line per adopted claim
+   (append if that heading exists). If **zero** claims were confirmed, touch nothing and say so
+   plainly: the plan stands as written, and here is why each objection failed.
+
+Boundary: findings go in the plan markdown, wherever it lives — Desktop drafts and
+`~/Desktop/docs-hub` are both fair game. Do not fix the underlying code as part of this, and
+do not commit or push unless I ask.
+
+Verify before you agree — deference to another model is not rigor. Verify before you disagree too:
+a confident refutation you did not check is the same failure in the other direction.
 
 ## Failure modes
 
