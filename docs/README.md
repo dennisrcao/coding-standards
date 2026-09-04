@@ -24,6 +24,7 @@ repo, rewrite globs, then record what landed in
 | `agent-backend` | 001, 005, 030, 100, 101, 105, 110 | Model calls; read 101 first |
 | `agent-conversational` | + 120, 125, 140 | Tool-loop agent — **not** 130 |
 | `agent-job-pipeline` | + 120, 130, 140 | Invoke-once jobs — **not** 125 |
+| `drag-and-drop` | 027 | Add when the repo has *positional* drag (coordinates → a value). Needs 026 |
 | `quality-gate` | 050 | Add when Fallow / changed-code CI exists |
 | `operator-machine` | *(reference only)* 060, 070, 090, 091 | Machine setup — not `.mdc` rules |
 
@@ -54,6 +55,7 @@ the `.md`). Workflow docs and `150` are **reference-only** — read from the hub
 | [020-zustand.md](frontend/020-zustand.md) | Zustand — selector-first stores |
 | [025-tanstack-query.md](frontend/025-tanstack-query.md) | TanStack Query — server state |
 | [026-optimistic-updates.md](frontend/026-optimistic-updates.md) | Optimistic updates |
+| [027-drag-and-drop.md](frontend/027-drag-and-drop.md) | Positional drag and drop — one resolver for preview + write |
 | [040-keyboard-shortcuts.md](frontend/040-keyboard-shortcuts.md) | Keyboard shortcuts (`useHotkeys`) |
 | [080-unused-scss-classes.md](frontend/080-unused-scss-classes.md) | Orphan CSS-module class lint |
 

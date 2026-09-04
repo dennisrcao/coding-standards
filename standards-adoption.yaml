@@ -49,6 +49,11 @@ rules:
     adoptable: true
     summary: Optimistic updates (Query cache)
 
+  "027":
+    path: frontend/027-drag-and-drop.md
+    adoptable: true
+    summary: Positional drag and drop — one resolver shared by preview and write
+
   "040":
     path: frontend/040-keyboard-shortcuts.md
     adoptable: true
@@ -180,6 +185,13 @@ profiles:
     adopt: ["001", "005", "030", "100", "101", "105", "110", "120", "130", "140"]
     notes:
       - "125 governs conversational harness extension; it does not apply here"
+
+  drag-and-drop:
+    description: Add when the repo has positional drag — drop coordinates that mean a value (time grid, canvas, timeline). Not for plain list reordering
+    adopt: ["027"]
+    notes:
+      - "027 leans on 026 for the commit half; adopt 026 first or together"
+      - "A repo whose only drag is useSortable list reordering does not need this — 027 says so in its scope note"
 
   quality-gate:
     description: Add when the repo runs Fallow or an equivalent changed-code audit in CI
