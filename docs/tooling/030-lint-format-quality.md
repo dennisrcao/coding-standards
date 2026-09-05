@@ -27,6 +27,13 @@ Formatting lives **inside ESLint** via [`@stylistic/eslint-plugin`](https://esli
 
 **Do not add Prettier** (`prettier`, `.prettierrc`, `eslint-config-prettier`, `eslint-plugin-prettier`) to a new project. If a formatting rule is missing, add the corresponding `@stylistic/*` rule.
 
+**"Not installed" is not a guard — do not run it ad-hoc either.** `npx prettier --write`
+fetches Prettier on demand, so the absence of a dependency and a config stops nothing. It
+rewrites files to defaults nobody here agreed to: it unpacks named imports into the
+one-name-per-line form the packing rule rejects, so the next `lint` fails — and it reformats
+untouched code in the same files, burying the real change in churn. The tell is a diff far
+larger than the edit you made. `eslint --fix` is the only formatter to reach for.
+
 ### The stack
 
 ESLint **9** flat config (`eslint.config.mjs`), composed with `typescript-eslint`:
