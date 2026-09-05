@@ -159,6 +159,7 @@ profiles:
     adopt: ["001", "010", "015", "020", "025", "026", "030", "040", "080"]
     notes:
       - "025 applies to client components and hooks/queries/; RSC pages may still use fetch() where the repo documents that choice"
+      - "015: Query factories live in lib/queries/<resource>.ts, not a root api/ — app/api/ already means route handlers"
 
   next-rsc-fetch:
     description: Next.js leaning on server-component fetch(), no TanStack Query

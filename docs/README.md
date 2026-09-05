@@ -18,7 +18,7 @@ repo, rewrite globs, then record what landed in
 | `baseline` | 001, 030 | Any repo |
 | `react-spa` | 001, 010, 015, 020, 025, 026, 030, 040, 080 | Vite/CRA-style SPA |
 | `react-spa-flat` | 001, 010, 020, 025, 026, 030, 040, 080 | Flat `src/` — skips 015 |
-| `next-dashboard` | same as `react-spa` | Client Query + RSC fetch where documented |
+| `next-dashboard` | same as `react-spa` | Client Query + RSC fetch where documented. Query factories go in `lib/queries/`, **not** `api/` — see 015 §2 |
 | `next-rsc-fetch` | 001, 010, 015, 020, 030, 080 | No Query — skips 025, 026 |
 | `python-api` | 001, 005, 030 | FastAPI backend |
 | `agent-backend` | 001, 005, 030, 100, 101, 105, 110 | Model calls; read 101 first |
