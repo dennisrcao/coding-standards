@@ -32,7 +32,7 @@ rules:
   "015":
     path: frontend/015-frontend-folder-organization.md
     adoptable: true
-    summary: Frontend folder layout (monorepo / apps/web)
+    summary: Frontend folder layout, _ui bucket, plugin criteria (Vite src/ and Next.js app/)
 
   "020":
     path: frontend/020-zustand.md

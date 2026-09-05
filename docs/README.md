@@ -51,7 +51,7 @@ the `.md`). Workflow docs and `150` are **reference-only** — read from the hub
 | Doc | Topic |
 |---|---|
 | [010-frontend-scss.md](frontend/010-frontend-scss.md) | SCSS modules — nesting mirrors JSX |
-| [015-frontend-folder-organization.md](frontend/015-frontend-folder-organization.md) | Folder layout |
+| [015-frontend-folder-organization.md](frontend/015-frontend-folder-organization.md) | Folder layout, `_ui/` bucket, plugin criteria — Vite `src/` and Next.js `app/` |
 | [020-zustand.md](frontend/020-zustand.md) | Zustand — selector-first stores |
 | [025-tanstack-query.md](frontend/025-tanstack-query.md) | TanStack Query — server state |
 | [026-optimistic-updates.md](frontend/026-optimistic-updates.md) | Optimistic updates |

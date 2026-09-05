@@ -102,7 +102,18 @@ pushes connection lifecycle boilerplate onto consuming components.
 
 **File placement** defers to [`015-frontend-folder-organization.md`](015-frontend-folder-organization.md):
 one feature → `components/<feature>/hooks/`; shared across features → `hooks/queries/`. Factories
-stay in `api/<resource>/queries.ts`, never in either hooks folder.
+never live in either hooks folder.
+
+**Where the factories go depends on the tree shape:**
+
+| Tree | Factory home |
+|---|---|
+| **Vite / SPA** (`react-spa` profile) | `api/<resource>/queries.ts` — a top-level `api/` directory, per 015 §2 |
+| **Next.js App Router** (`next-dashboard`) | `lib/queries/<resource>.ts` — `api/` is not created, because `app/api/` already means route handlers and a second `api/` at the tree root reads as the same thing |
+
+The rule is identical in both — a factory is not a hook, and it does not live beside one. Only the
+directory name changes, to avoid colliding with Next's own routing convention. Repos on
+`next-rsc-fetch` skip this standard entirely.
 
 - **A hand-rolled TTL cache or in-flight dedup in front of a query.** Both are built in; two cache
   layers means two things to invalidate.
