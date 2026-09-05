@@ -21,7 +21,7 @@ Writing a command *is* committing it; there is no separate backup step.
 A file named `foo.md` in that folder becomes `/foo`. Claude Code also surfaces it in the skills
 list, so it can fire on intent, not just on the typed slash.
 
-**Most of these are shared with Cursor** — `/close-out`, `/ship` and `/pr-description` are
+**Most of these are shared with Cursor** — `/close-out`, `/ship`, `/pr-description` and `/pr-shots` are
 literally one file symlinked into both agents, so they cannot drift. Only
 `/ask` is deliberately two files, because each side has to name the *other* agent's binary. See
 [091-slash-commands-claude-vs-cursor.md](091-slash-commands-claude-vs-cursor.md) for the two-agent
@@ -67,6 +67,7 @@ view, what Cursor ignores in a shared file, and the bar a command has to clear t
 | `/close-out` | both | I've signed off — **land it.** Commit, PR, review, CI, merge to the repo's base branch, then leave the checkout on that branch instead of stranded on the feature branch. Stops for a yes when merging fires a deploy. Closes out the `docs-hub` ticket that drove the work — strike, then archive or mark deferred. |
 | `/ship` | both | Take a behavior from wherever it is now through review and staging to **production**, and prove both sides landed. |
 | `/pr-description` | both | Ticket link + a before/after behavior table. Nothing else. |
+| `/pr-shots` | both | Before/after **screenshots** in the PR body — shoots each changed surface on the base deploy and on the PR preview, hosts the images, rewrites the body outcome-first (one `## N ·` section per thing that is now true, Base / This PR under each, captions below the images). The only command that edits a PR. |
 | `/ask` | both, two files | Ask the *other* agent to critique this without opening its window — then verify every claim before adopting it. |
 | `/docs-update` | Claude | Sweep a project's `docs-hub` `docs/development/` — verify each plan against the real repo, strike what landed, archive what's done, refresh section READMEs. **Full source below.** |
 | `/update-markdown` | Claude | Cross off what we actually implemented in the plan markdown we've been following; mark finished sections `✅`. |

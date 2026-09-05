@@ -12,6 +12,7 @@ SRC = {
     'closeout':   HOME / '.claude/commands/close-out.md',
     'ship':       HOME / '.claude/commands/ship.md',
     'prdesc':     HOME / '.claude/commands/pr-description.md',
+    'prshots':    HOME / '.claude/commands/pr-shots.md',
     'claude_ask': HOME / '.claude/commands/ask.md',
     'cursor_ask': HOME / '.cursor/commands/ask.md',
     'docsupd':    HOME / '.claude/commands/docs-update.md',
@@ -71,6 +72,7 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 | `/close-out` | `~/.claude/commands/close-out.md` | `~/.cursor/commands/close-out.md` | **one file** — {n['closeout']} lines |
 | `/ship` | `~/.claude/commands/ship.md` | `~/.cursor/commands/ship.md` | **one file** — {n['ship']} lines |
 | `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — {n['prdesc']} lines |
+| `/pr-shots` | `~/.claude/commands/pr-shots.md` | `~/.cursor/commands/pr-shots.md` | **one file** — {n['prshots']} lines |
 | `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`. {n['claude_ask']} lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`. {n['cursor_ask']} lines. | **two files, on purpose** |
 | `/docs-update` | `~/.claude/commands/docs-update.md` — {n['docsupd']} lines | — none — | Claude only |
 | `/update-markdown` | `~/.claude/commands/update-markdown.md` — {n['updmd']} lines | — none — | Claude only |

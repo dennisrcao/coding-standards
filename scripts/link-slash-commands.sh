@@ -80,7 +80,7 @@ done
 # Claude honours the YAML frontmatter and the !`cmd` context lines; Cursor
 # ignores both and renders them as text. That is the accepted cost of one file.
 # ---------------------------------------------------------------------------
-for f in close-out ship pr-description; do
+for f in close-out ship pr-description pr-shots; do
   link "shared/$f.md" "$HOME/.claude/commands/$f.md"
   link "shared/$f.md" "$HOME/.cursor/commands/$f.md"
 done
