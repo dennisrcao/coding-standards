@@ -90,13 +90,14 @@ project. The lint **script** stays local (`"lint": "eslint src"`) and a monorepo
 - [ ] **No Prettier**, no `eslint-config-prettier` — `@stylistic` owns formatting
 - [ ] Ignore build output (`dist/**`)
 
-### Pack, don't stack — imports, hook deps, parameter lists
+### Pack, don't stack — imports, hook deps, parameter lists, destructuring
 
-**One rule, three places.** Named imports, React hook dependency arrays, and function /
-component parameter lists all follow the same form:
+**One rule, four places.** Named imports, React hook dependency arrays, function / component
+parameter lists, and destructuring assignments (`const { … } = useThing()`) all follow the same
+form:
 
 1. Keep the list on **one line** when it fits the 150-char budget. This is the common case —
-   it should cover the large majority of every one of the three.
+   it should cover the large majority of all four.
 2. When it genuinely will not fit, **wrap and pack**: fill each continued line with as many
    entries as fit under the budget.
 3. **Never one entry per line.** That is Prettier's default shape, and it is the one form
@@ -104,14 +105,14 @@ component parameter lists all follow the same form:
 
 This is deliberate, and it is the opposite of what an LLM will produce unprompted — the
 training distribution is overwhelmingly Prettier-at-80 open-source React, so agents drift to
-one-per-line in *all three* positions unless the repo says otherwise. Dense lists scan faster,
+one-per-line in *all four* positions unless the repo says otherwise. Dense lists scan faster,
 diff more cleanly, and a wrapped line can carry a **related set** rather than an arbitrary
 slice.
 
 > **The exception: JSX props stay one per line.** A JSX attribute is a `name={expression}`
 > pair, often a multi-line arrow — packing those produces genuinely worse code. Keep the
 > familiar one-attribute-per-line form for JSX. This section is about *identifier lists*
-> (imports, deps, params), not JSX.
+> (imports, deps, params, destructures), not JSX.
 
 #### Named imports
 
@@ -230,11 +231,40 @@ export function ConsoleButton({
 Interface and type members are **not** covered — `interface Props { … }` keeps one member per
 line, because each member carries its own type, optionality and doc comment.
 
+#### Destructuring assignments
+
+A `const { … } = useSomething()` is an identifier list like any other, and it is the position
+this rule missed longest. Read as prose it is *calling a hook*, so it does not feel like a list
+being formatted — but the shape on the page is a parameter list's, and so is the fix. Wherever
+a codebase adopts the packing bar for signatures and then quietly keeps stacking hook returns,
+this is why.
+
+```ts
+// GOOD — one line when it fits.
+const { data, isLoading, isError, error } = useAccountSummary();
+
+// GOOD — wrapped and packed when the names will not fit 150.
+const {
+  accounts, spentToday, spentThisMonth, discretionaryThisMonth,
+  discretionaryBudget, isLoading, isError, error,
+} = useAccountSummary();
+
+// BAD — one name per line. Prettier's default; what LLMs write unprompted.
+const {
+  accounts,
+  spentToday,
+  spentThisMonth,
+} = useAccountSummary();
+```
+
+Array destructuring follows the same budget, though it rarely reaches it:
+`const [value, setValue] = useState(…)` stays on one line.
+
 ##### For agents — the drift after import lint lands
 
-Repos that adopt the ESLint rule often see imports fixed on the first pass, then **params and
-hook deps stay Prettier-shaped forever** — because nothing autofixes them. When you write or
-edit a function signature or hook dependency array:
+Repos that adopt the ESLint rule often see imports fixed on the first pass, then **params, hook
+deps and destructures stay Prettier-shaped forever** — because nothing autofixes them. When you
+write or edit a function signature, hook dependency array, or destructuring assignment:
 
 1. **One line when it fits** under 150 chars (most small components).
 2. **Wrap and pack** when it does not — multiple names per continued line, trailing comma before
