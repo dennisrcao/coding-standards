@@ -18,9 +18,10 @@ to a server.
 there are no coordinates, only a before and an after — and it needs roughly rules 1, 13 and 14 and
 nothing else. Do not pay for the rest of this document on a sortable list.
 
-Examples below use dnd-kit, because that is what the reference implementations use. Rules 4 and 16
-are dnd-kit specifics; every other rule is about the *shape* of the feature and survives a library
-swap.
+Examples below use dnd-kit, because that is what the reference implementations use. Rules 4, 16 and
+19 name its specifics; every other rule is about the *shape* of the feature and survives a library
+swap. Rule numbers are stable identifiers — 18 and 19 were appended to their sections rather than
+inserted, so nothing already cited by number moved.
 
 > **The motivating failure.** A drag-to-schedule feature where the preview said 22:00 and the write
 > produced 23:00; where a second drag context silently made the target undroppable; where the ghost
@@ -288,6 +289,31 @@ records synced from elsewhere must only unschedule/delete the ones your app crea
 **server-side**, with the client's optimistic path replicating the same test. Getting this wrong on a
 shared calendar or shared board sends a cancellation to other people.
 
+### 18. A drop onto an item that already has a position is a *move*, not a conflict
+
+Rule 13 covers dragging an item **off** the surface. This is the other repeat: dragging on an item
+that is **already placed**. The gesture is identical and the user cannot tell the two apart, so the
+handler must not either — it reads the record and decides.
+
+Rejecting the second drop is the tempting shortcut and it is the wrong one. A conflict response plus
+an optimistic rollback is, on screen, **exactly** a drag that did not take: the item lifts, the ghost
+paints, and on release it snaps home with no message. Users do not read that as "already placed",
+they read it as "drag is broken" — and they are half right, because a move is a thing the system can
+obviously do.
+
+Move it in place:
+
+- **Change only what the gesture expressed.** A drop names a position. It does not name a parent, an
+  owner, or a destination collection — do not re-resolve those from current preferences just because
+  you are writing anyway. The item stays where it lives; only its coordinates change.
+- **Patch, do not replace.** Send the fields the move changes and no others, so a full-object write
+  cannot blank fields the drag never touched.
+- **Read the item's real extent from the source of truth before writing it back.** Cached copies of
+  a duration go stale, and a stale extent applied on every move silently resizes the record a little
+  more each time. If you must fall back to a default, do it only when the real one is unreadable.
+- **Read-before-write also tells you the record is gone** — deleted in another client — before you
+  have written anything, which turns a confusing partial failure into a clean one.
+
 ---
 
 ## Surfaces
@@ -315,6 +341,36 @@ other control sits beside it.
 and spread `attributes` / `listeners` conditionally. Read-only records and items with no positional
 meaning are not draggable, and a `cursor: grab` on something that cannot be grabbed is a lie.
 
+**That node must cover the item.** Splitting the listeners onto their own node creates a hit-area
+bug the moment the node is smaller than the thing that looks draggable — and it is easy to write,
+because a `flex: 1` child of a centring parent gets *content* height, not the parent's. Measured on
+a 209px item whose listener node was two lines of text: a ~35px live band floating in the middle,
+about a tenth of the item, and the fraction got **worse the larger the item grew**. Every press
+outside it did nothing, which reads as "drag is broken" rather than "you missed".
+
+```scss
+/* the listener node, inside a centring parent */
+align-self: stretch;   /* fill the item; the sibling control keeps its own box */
+```
+
+Verify by hit-testing, not by eye: `document.elementFromPoint(x, y)` sampled down the item's full
+height must return the listener node (or a descendant) at every sample. Grabbing the label proves
+nothing — the label is the part that already worked.
+
+**Suppress the browser's own gestures on it.**
+
+```scss
+user-select: none;   /* or a press on the text starts a selection instead */
+touch-action: none;  /* or the browser claims the gesture for scrolling */
+```
+
+Without these, the browser's native text-selection (mouse) or pan (touch) competes with the drag
+sensor for the same pointer sequence, and **which one wins is a per-press heuristic** — so the drag
+starts sometimes and not others, from the same spot, for the same user. This is the single most
+common cause of "dragging feels unreliable", it never appears in a log, and no unit test can see it.
+Put both on the node that carries the listeners, and remember a scroll container above it may set
+`touch-action` for its own reasons — the more specific rule on the pressed element is what wins.
+
 ### 15. Hidden surfaces reject drops
 
 Alternate views kept mounted under `display: none` are still registered droppables with real
@@ -328,8 +384,39 @@ than hoping the default sorts it out:
 
 - **Filter `droppableContainers` by what the active drag may legally target.** A group header must
   not be droppable onto a leaf row, or onto another parent's children.
-- **`pointerWithin` first, then fall back to `closestCorners`.** Pointer-within is what lets an
-  *empty* container accept a drop; the fallback covers the pointer being over nothing.
+- **`pointerWithin` first.** Pointer-within is what lets an *empty* container accept a drop, and it
+  is the only detector that answers the question the gesture actually asks. Rect-overlap detectors
+  score the *dragged element's box*, so an item nearly as wide as its target overlaps two targets at
+  once near a boundary and the drop resolves by area — landing beside the target you pointed at.
+
+- **Add `closestCorners` as a fallback only where "nowhere" has a safe answer.** It never returns
+  empty: it ranks *every* droppable by distance, so `over` stops being nullable and a release
+  anywhere on the page resolves to something. That is correct for reordering, where the item must
+  land somewhere. It is dangerous for a drag that **writes**: released over blank chrome, an item
+  was silently moved to the nearest target — and the nearest target can as easily be a destructive
+  one (an unschedule or delete zone) as a harmless one.
+
+  **A release outside every target must cancel.** When the drop commits, use `pointerWithin` alone
+  and let `over` be null; the end handler already returns early on it. Prove it with the negative
+  test in rule 17 — drop on blank space and assert that no request is sent.
+
+### 19. The activation threshold is shared with whatever else a press means
+
+The distance (or delay) before a press becomes a drag is usually tuned once, against "a click must
+not start a drag", and then treated as settled. It is not settled — it is a budget shared with every
+other gesture that starts with a press on the same node:
+
+- **If a double-click opens the item, *both* clicks must stay under the threshold.** Lowering it to
+  make dragging feel snappier makes opening fail whenever a hand drifts a few pixels between the two
+  — and that failure looks like the drag bug you were trying to fix.
+- **A `delay`-style constraint cancels when the pointer moves before the timer elapses.** Fast,
+  confident drags — the ones an experienced user makes — are exactly the ones it drops.
+- **Moving what a single click does changes what the threshold is protecting.** Record that in a
+  comment where the number lives, or the next person will "optimise" it against the old reason.
+
+If dragging feels hard to start, the threshold is rarely the cause — check rule 14 first. A press
+that never reached the sensor, or that the browser turned into a text selection, is not a threshold
+problem, and lowering the number to compensate quietly breaks a different gesture instead.
 
 ---
 
@@ -345,10 +432,28 @@ because it does no arithmetic.
 a zero or negative extent; a null pointer; a drag that rolls over into the next container. The middle
 of the surface has never been the bug.
 
-**Then load the page and drag it yourself.** Synthetic pointer events plus an activation constraint
-make automated drag tests slow and flaky, and they do not prove the thing that actually breaks — that
-what you saw is what got written. The motivating failure passed typecheck, lint and the full unit
-suite while the feature was visibly wrong on screen.
+**Then load the page and drag it yourself.** The motivating failure passed typecheck, lint and the
+full unit suite while the feature was visibly wrong on screen, and no amount of pure-function
+coverage would have caught it.
+
+A browser-driven drag is worth more than this document once claimed, provided you drive the pointer
+the way a hand does — press, then several small moves with the event loop given time to run the
+sensor between them. Batched or instantaneous moves fail to activate and read as a product bug when
+they are a harness bug. Two things it proves that no unit test can:
+
+- **Hit area**, by sampling `elementFromPoint` down the item rather than trusting the layout.
+- **What was actually written**, by intercepting the write endpoint and asserting on the request
+  body — or asserting that no request was made at all.
+
+**The cases worth automating are the negative ones**, because they are the ones nobody performs by
+hand:
+
+- **Release outside every target.** Nothing may be written. (Rule 16 — this is the one that catches
+  a collision fallback that manufactures a target.)
+- **Grab at several points across the item**, including far from its label, not just where the text
+  is. (Rule 14.)
+- **Drag the same item twice before the first drop settles**, to catch a second gesture reading a
+  placeholder as if it were a saved record.
 
 ---
 
@@ -367,8 +472,14 @@ suite while the feature was visibly wrong on screen.
 - [ ] The queued frame is cancelled on end / cancel / unmount — **without** clearing the pointer ref.
 - [ ] Every key in `invalidateQueries` also appears in `setQueryData`; the rollback is tested.
 - [ ] The reverse drag exists, is equally optimistic, and refuses records you do not own.
+- [ ] A drop on an already-placed item moves it; nothing returns a conflict for a repeat drag.
 - [ ] Listeners are on their own node; nested controls are siblings; `disabled` is set at the hook.
+- [ ] The listener node **fills the item** — hit-tested down its height, not eyeballed.
+- [ ] `user-select: none` and `touch-action: none` on the node that carries the listeners.
 - [ ] Hidden surfaces reject drops.
-- [ ] Collision detection is routed when kinds share a context.
+- [ ] Collision detection is routed when kinds share a context, and **a release over nothing
+      cancels** — no `closestCorners` fallback on a drag that writes.
+- [ ] The activation threshold is documented against every gesture it gates, not just "click".
 - [ ] The coordinate math is pure, colocated and tested at the edges.
+- [ ] The negative cases are automated: drop on nothing, grab away from the label, drag twice fast.
 - [ ] **You dragged it yourself, on screen.**

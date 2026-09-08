@@ -84,6 +84,24 @@ Three things that are easy to skip and all matter:
 like `"pending"` collides the moment two optimistic rows exist at once and cannot be matched to its
 own response.
 
+**And the prefix has to be *read*, not just written.** Export the test next to the generator
+(`isPlaceholderId(id)`) and use it everywhere the code asks "does this exist on the server yet?",
+because for the length of an in-flight create the answer is **no** even though the record has an id:
+
+```ts
+// WRONG — true while the create is still in flight
+const alreadySaved = Boolean(row.remote_id);
+
+// RIGHT — a placeholder is not a saved record
+const alreadySaved = Boolean(row.remote_id) && !isPlaceholderId(row.remote_id);
+```
+
+Get this wrong and a second action taken before the first settles addresses a record the server has
+never heard of: the update targets a phantom id and fails, and — worse — if that failure is handled
+as *"the record was deleted elsewhere"*, the handler clears the link to a real record that was being
+created at that moment. The window is short, which is exactly why it survives review and reproduces
+only for the fastest users.
+
 ### 4. Test the rollback and the cache shape, not the happy path
 
 The happy path is the one that already works. Test the error path and the cross-cache invariants:
@@ -115,6 +133,7 @@ Optimism is a claim that you can predict the server. Do not make it when you can
 - [ ] The inverse operation is optimistic too.
 - [ ] `cancelQueries` → snapshot → `setQueryData`, rollback in `onError`, reconcile in `onSettled`.
 - [ ] Placeholder ids are unique and prefixed, not literals.
+- [ ] The prefix is read back — a placeholder never counts as "already saved on the server".
 - [ ] A test forces the error path and asserts the rollback.
 - [ ] A test asserts the cache-shape invariant across every cache you touched.
 - [ ] You loaded the page. The motivating failure passed typecheck, lint and the full unit suite while
