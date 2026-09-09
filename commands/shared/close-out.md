@@ -21,10 +21,10 @@ allowed-tools: Bash(git:*), Bash(gh:*), Bash(pnpm:*), Bash(npm:*), Bash(pwd), Ba
 
 # /close-out
 
-**I have signed off on the behavior. Land it.** Commit what is left, open a PR, review it, fix
-what should be fixed, wait for CI, merge to this repo's base branch, leave this checkout on
-that base branch — not stranded on the feature branch — and close out the `docs-hub`
-ticket that drove the work, if there was one.
+**I have signed off on the behavior. Land it.** Commit what is left, open a PR, **thoroughly
+review it** (unless `$ARGUMENTS` contains `skip review`), fix what should be fixed, wait for CI,
+merge to this repo's base branch, leave this checkout on that base branch — not stranded on the
+feature branch — and close out the `docs-hub` ticket that drove the work, if there was one.
 
 This is repo-agnostic. It resolves the base branch rather than assuming one: `staging` on
 app-monorepo, `main` almost everywhere else. Never hardcode either.
@@ -43,6 +43,8 @@ then abandoned on a stale feature branch, or a deploy fired that nobody knew was
 - **No force-push, no `--no-verify`, no amending a pushed commit.**
 - **Never report as landed what you did not verify.** Confirm the merge SHA and the local branch
   state by reading them back, not by assuming the command worked.
+- **Never merge with open `fix-now` review findings.** Step 2 must finish — verified and either
+  fixed or reclassified with evidence — before merge.
 - **Do not kill background jobs.** Report them.
 
 ---
@@ -66,23 +68,71 @@ Stop conditions, each of which ends the command:
 - **Not a git repo** → stop.
 - **Nothing to land** — clean tree, nothing unpushed, no open PR → say so and stop.
 
-## Step 1 — Review the diff
+## Step 1 — Merge-blocker scan (quick)
 
-Review `origin/<base>...HEAD` plus the working tree, looking for **merge blockers** — the things
-you would not let through, not a style pass. Use the repo's own conventions: read its `CLAUDE.md` /
-`AGENTS.md` first if you have not already.
+60-second pass on `origin/<base>...HEAD` plus the working tree. Look for **merge blockers only** —
+secrets in the diff, debug-only flags left on, broken redirects, API contract breaks you can spot
+without a deep read, prod-data footguns. Read the repo's `CLAUDE.md` / `AGENTS.md` if you have not
+already. Not a style pass.
 
-This is a quick inline review on purpose. Do **not** invoke a repo's `/code-review` skill unless
-`$ARGUMENTS` asks — it is slow, and it does not exist in most repos.
+## Step 2 — Thorough review (default)
 
-## Step 2 — Fix what should be fixed
+Skip this step only when `$ARGUMENTS` contains `skip review`.
 
-Fix anything from Step 1 you would not merge. Then run what the repo gates on — its test command
-and its lint/typecheck (`pnpm validate`, `pnpm test`, whatever that repo actually uses).
+Review as if production breaks are on you. **`fix-now` findings block the merge** until resolved or
+reclassified with `file:line` evidence.
+
+### 2a — Gather
+
+- `git diff origin/<base>...HEAD` and `git log origin/<base>..HEAD --oneline`
+- Open PR body, hub ticket, or the user sign-off from this conversation — what behavior was promised
+- Per-app agent notes for every area the diff touches
+
+### 2b — Repo `/code-review` skill (when it exists)
+
+If the repo root has `.claude/skills/code-review/SKILL.md`, follow it with fixed point
+`origin/<base>`. Run **both** Standards and Spec axes — `/close-out` is not an excuse to skip Spec.
+
+### 2c — Cursor Bugbot (when 2b does not apply, or as a second lens in Cursor)
+
+When there is no `code-review` skill, launch the **Bugbot** subagent on `origin/<base>...HEAD`
+(`Diff: branch changes`). Put PR intent in `Change Description` only when the diff alone is not
+enough context.
+
+In Cursor you may run 2b **and** 2c when both exist — Spec/standards from the skill, bug-hunt from
+Bugbot. Do not merge duplicate findings; verify once.
+
+### 2d — Structured pass (when neither 2b nor 2c ran)
+
+Work through the diff explicitly:
+
+| Axis | Question |
+|------|----------|
+| Correctness | Edge cases, off-by-one, null/empty, timezone and date boundaries |
+| Regression | Legacy URLs, API response shapes, feature flags, shared prod backends |
+| Tests | Does each changed behavior have a test or a documented reason it does not? |
+| Security / data | Auth, RLS, secrets, destructive SQL, single prod Supabase instances |
+
+### 2e — Verify every finding
+
+No finding becomes **fix-now** until you open the cited file and confirm with `file:line`
+evidence — same bar as `/ask` Step 4. Drop false positives; say so in the report.
+
+### 2f — Report before fixing
+
+Short table: **Finding | Verdict (`fix-now` / `defer` / `false positive`) | evidence**
+
+Only **fix-now** items are fixed in Step 3. **Defer** items go in the PR body and the Step 11
+receipt. Do not grow scope fixing defers.
+
+## Step 3 — Fix what should be fixed
+
+Fix every **fix-now** item from Step 2. Then run what the repo gates on — its test command and its
+lint/typecheck (`pnpm validate`, `pnpm test`, whatever that repo actually uses).
 
 If a fix is larger than the change being landed, **stop and say so** rather than growing the PR.
 
-## Step 3 — Commit what is left
+## Step 4 — Commit what is left
 
 Explicit paths only. Check whether uncommitted work is *yours*: `git log -3` timestamps and
 `.git/index` mtime tell you if another agent is mid-edit. If it is not yours, **leave it and say
@@ -90,13 +140,13 @@ so** — do not stage it, stash it, or switch branches under it.
 
 HEREDOC commit message. Split unrelated changes into separate commits.
 
-## Step 4 — Push
+## Step 5 — Push
 
 ```sh
 git push -u origin HEAD
 ```
 
-## Step 5 — PR
+## Step 6 — PR
 
 `gh pr view` first — reuse the open PR if there is one. Otherwise:
 
@@ -106,7 +156,7 @@ gh pr create --base <base> --title "<title>" --body "<body>"
 
 Body: what changed and why, in the repo's house style. If the repo has a PR template, use it.
 
-## Step 6 — Wait for CI
+## Step 7 — Wait for CI
 
 ```sh
 gh pr checks <N> --watch
@@ -114,7 +164,7 @@ gh pr checks <N> --watch
 
 Red or still-failing required checks → stop and report. Do not merge.
 
-## Step 7 — Merge, with the deploy gate
+## Step 8 — Merge, with the deploy gate
 
 **Before merging, find out whether merging deploys anything:**
 
@@ -142,7 +192,7 @@ gh pr merge <N> --merge --delete-branch=false
 
 Confirm `state: MERGED` and capture the merge SHA.
 
-## Step 8 — Sync this checkout
+## Step 9 — Sync this checkout
 
 The whole point of the last step: do not leave the repo stranded on the merged feature branch.
 
@@ -154,7 +204,7 @@ git pull origin <base>
 
 Confirm `HEAD` is the merge commit and the branch tracks `origin/<base>`.
 
-## Step 9 — Close out the hub ticket, if there was one
+## Step 10 — Close out the hub ticket, if there was one
 
 **Only if this work was driven by a markdown doc under
 `~/Desktop/docs-hub/projects/<project>/docs/`.** If it was not — no doc, or a plan that
@@ -187,7 +237,7 @@ are the source of truth, they move, and this repo does not load them. The mechan
    day in PT. Create the day folder if it is missing; never rename or renumber one that exists —
    two checkouts landing in the same day folder is the design.
 
-   Every path below is **hub-relative**. Step 8 left you in the code repo, so address the hub
+   Every path below is **hub-relative**. Step 9 left you in the code repo, so address the hub
    explicitly rather than `cd`-ing out of the checkout you just put back on its base branch:
 
    ```sh
@@ -218,7 +268,7 @@ are the source of truth, they move, and this repo does not load them. The mechan
 If the ticket is superseded, duplicated, or dangling rather than done, **delete it** instead of
 archiving it. Do not leave it in the live tree for the next agent to re-read.
 
-## Step 10 — The receipt
+## Step 11 — The receipt
 
 Keep it scannable. No victory lap.
 
@@ -227,7 +277,7 @@ branch. State how each was verified, not that it "should" have worked. If a hub 
 work, name its new path — archived to `<day>/✅_<slug>.md`, or left in Development as Shipped+ with
 what is still deferred.
 **Open** — anything deliberately left behind: unstaged work that was not yours, a fix judged too
-big for this PR, a follow-up worth a ticket.
+big for this PR, **defer** review findings from Step 2, a follow-up worth a ticket.
 **Blocked on you** — decisions you could not make. The question, what it gates, and what changes on
 each answer. If you have been carrying an unanswered question for several turns, it goes here even
 if the operator seems to have moved on. Especially then.

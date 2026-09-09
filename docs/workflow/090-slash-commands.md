@@ -58,13 +58,13 @@ view, what Cursor ignores in a shared file, and the bar a command has to clear t
 - **Don't let a merge fire a deploy silently.** Merging is not automatically safe just because the
   operator typed the command: on app-monorepo a push to `staging` publishes to three staging hosts.
   A command that merges must check `.github/workflows/*.yml` for a `push:` trigger on the target
-  branch and stop for a yes when it finds one. `/close-out` does this at step 7.
+  branch and stop for a yes when it finds one. `/close-out` does this at step 8.
 
 ## The roster
 
 | Command | Agents | What it is for |
 |---|---|---|
-| `/close-out` | both | I've signed off — **land it.** Commit, PR, review, CI, merge to the repo's base branch, then leave the checkout on that branch instead of stranded on the feature branch. Stops for a yes when merging fires a deploy. Closes out the `docs-hub` ticket that drove the work — strike, then archive or mark deferred. |
+| `/close-out` | both | I've signed off — **land it.** Commit, PR, **thorough review** (repo `/code-review` skill or Bugbot when present; `skip review` opts out), CI, merge to the repo's base branch, then leave the checkout on that branch instead of stranded on the feature branch. Stops for a yes when merging fires a deploy. Closes out the `docs-hub` ticket that drove the work — strike, then archive or mark deferred. |
 | `/ship` | both | Take a behavior from wherever it is now through review and staging to **production**, and prove both sides landed. |
 | `/pr-description` | both | Ticket link + a before/after behavior table. Nothing else. |
 | `/pr-shots` | both | Before/after **screenshots** in the PR body — shoots each changed surface on the base deploy and on the PR preview, hosts the images, rewrites the body outcome-first (one `## N ·` section per thing that is now true, Base / This PR under each, captions below the images). The only command that edits a PR. |

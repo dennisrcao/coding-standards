@@ -81,7 +81,7 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 ## `/close-out` lands the work — in either agent
 
 `/close-out` means one thing now: **I have signed off on this behavior, land it.** Commit what is
-left, open a PR, review it, fix what should be fixed, wait for CI, merge to the repo's base branch,
+left, open a PR, thoroughly review it (unless `skip review`), fix what should be fixed, wait for CI, merge to the repo's base branch,
 leave the checkout on that base branch rather than stranded on the merged feature branch, and close
 out the `docs-hub` ticket that drove the work.
 
@@ -92,14 +92,14 @@ assumes:
 |---|---|
 | Base branch | `git symbolic-ref refs/remotes/origin/HEAD`, falling back to `gh repo view --json defaultBranchRef` in a fresh clone. `staging` on app-monorepo, `main` nearly everywhere else. |
 | Whether merging deploys | greps `.github/workflows/*.yml` for a `push:` trigger on the resolved base branch |
-| Review depth | an inline diff review — never a repo's `/code-review` skill, which exists only in app-monorepo |
+| Review depth | merge-blocker scan always; then thorough review by default — repo `/code-review` skill when present, else Bugbot (Cursor) or a structured pass. `skip review` in `$ARGUMENTS` opts out. `fix-now` findings block merge. |
 
 **The deploy gate is the part worth knowing.** If nothing deploys on merge, it merges without
 stopping. If something does, it stops and names what will publish and where. On app-monorepo a push
 to `staging` fires the frontend deploy to the staging, client-staging and admin-staging hosts, plus
 the docs hub and the AM image — so `/close-out` always stops there for a yes.
 
-**Merging is also what fires the hub's done-gate.** Step 9 strikes the landed steps in the
+**Merging is also what fires the hub's done-gate.** Step 10 strikes the landed steps in the
 `docs-hub` markdown that drove the work, then either archives it to
 `docs/archive/<day the PR merged>/✅_<slug>.md` or — if something shipped with leftovers — marks it
 `deferred` and leaves it in Development. It is skipped silently when no hub doc drove the work, and
@@ -114,7 +114,7 @@ loads neither.
 > Claude and a merge-to-staging command in Cursor. Typing it in the wrong window did not fail — it
 > did something confidently, and the something was not what was wanted. That is resolved by the two
 > meanings becoming one, not by a disambiguation gate. The old session-report behaviour survives as
-> Step 10, the receipt.
+> Step 11, the receipt.
 
 ## `/ask` is the one that cannot be shared
 
@@ -170,8 +170,9 @@ The bar is low, now that frontmatter is free:
 
 - **Resolve, do not assume.** Base branch, repo root, package manager, test command — detect them.
   A command that hardcodes `staging` or `pnpm` is a Acme command wearing a global name.
-- **Do not depend on repo-local skills.** `.claude/skills/code-review/` exists in app-monorepo and
-  nowhere else. A global command that invokes it is broken in every other repo.
+- **Repo-local skills are opt-in per command.** `.claude/skills/code-review/` exists in
+  app-monorepo and nowhere else. `/close-out` invokes it when present; other shared commands should
+  not assume it exists unless they document that ladder.
 - **Say in prose what the frontmatter collects**, so the Cursor side is not flying blind.
 - **Put it in `commands/shared/`** and let `link-slash-commands.sh` wire both agents.
 

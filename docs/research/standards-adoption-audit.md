@@ -140,7 +140,7 @@ correction, not a code change.
 ## 5. What triggered this
 
 The claw-calendar desktop-shell refactor
-([desktop-panel-organization.md](../../../claw-calendar/docs/development/proposals/desktop-panel-organization.md))
+([desktop-panel-organization.md](../../../claw-calendar/docs/development/z_proposals/desktop-panel-organization.md))
 prompted: *bring in the global standards first, then apply them one by one?*
 
 **Checked, and no — 015 is not a prerequisite for that work:**
