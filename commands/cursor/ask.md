@@ -24,7 +24,8 @@ cd "<the clone under review>" && claude -p --permission-mode plan "<your prompt>
 - `--permission-mode plan` keeps it read-only. Never use `--dangerously-skip-permissions`.
 - Add `--model opus` for the strongest review; omit for the default.
 - It may take a minute or two on a large diff. Let it finish.
-- One call. Do not retry in a loop.
+- One call. Do not retry in a loop. For a multi-round argument use `/debate`, which bounds
+  each round (no subagents, no MCP, `--max-turns`) and carries a claims ledger between rounds.
 
 Ask for disagreement, not a summary. Include:
 

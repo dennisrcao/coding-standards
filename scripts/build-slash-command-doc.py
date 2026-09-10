@@ -15,6 +15,7 @@ SRC = {
     'prshots':    HOME / '.claude/commands/pr-shots.md',
     'claude_ask': HOME / '.claude/commands/ask.md',
     'cursor_ask': HOME / '.cursor/commands/ask.md',
+    'cursor_debate': HOME / '.cursor/commands/debate.md',
     'docsupd':    HOME / '.claude/commands/docs-update.md',
     'updmd':      HOME / '.claude/commands/update-markdown.md',
     'explain':    HOME / '.claude/commands/explain.md',
@@ -52,7 +53,7 @@ agent's binary.
 |---|---|
 | `commands/shared/` | **both** agents — one file, cannot drift |
 | `commands/claude/` | Claude Code only |
-| `commands/cursor/` | Cursor only — just `/ask` |
+| `commands/cursor/` | Cursor only — `/ask` and `/debate` (up to three bounded `/ask` rounds with a claims ledger) |
 
 `~/.claude/commands/` and `~/.cursor/{{commands,skills}}/` are symlinks into those, so editing a
 command from either agent edits the tracked file, and `git pull` carries it to every Mac. A wiped
@@ -74,6 +75,7 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 | `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — {n['prdesc']} lines |
 | `/pr-shots` | `~/.claude/commands/pr-shots.md` | `~/.cursor/commands/pr-shots.md` | **one file** — {n['prshots']} lines |
 | `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`. {n['claude_ask']} lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`. {n['cursor_ask']} lines. | **two files, on purpose** |
+| `/debate` | — | `~/.cursor/commands/debate.md` — up to three bounded `claude -p` rounds (no subagents, no MCP, `--max-turns 12`), claims ledger next to the plan, Cursor verifies every claim before recording it. {n['cursor_debate']} lines. | **Cursor only** |
 | `/docs-update` | `~/.claude/commands/docs-update.md` — {n['docsupd']} lines | — none — | Claude only |
 | `/update-markdown` | `~/.claude/commands/update-markdown.md` — {n['updmd']} lines | — none — | Claude only |
 | `/explain` | `~/.claude/commands/explain.md` — {n['explain']} lines | — none — | Claude only |

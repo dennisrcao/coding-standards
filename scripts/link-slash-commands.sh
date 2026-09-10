@@ -7,7 +7,7 @@
 #
 #   commands/shared/  -> BOTH agents. One file, cannot drift.
 #   commands/claude/  -> Claude Code only.
-#   commands/cursor/  -> Cursor only. Just /ask, which must name the other agent's binary.
+#   commands/cursor/  -> Cursor only. /ask (must name the other agent's binary) and /debate (loops it).
 #
 # Safe to re-run. A pre-existing real file is backed up next to itself before being replaced,
 # unless it is already byte-identical to the repo copy.
@@ -94,6 +94,7 @@ done
 # binary. Merged into one file, an agent that misidentifies itself would shell
 # out to itself and return its own reasoning as a second opinion, silently.
 link "cursor/ask.md" "$HOME/.cursor/commands/ask.md"
+link "cursor/debate.md" "$HOME/.cursor/commands/debate.md"
 
 # Shared skills — these stay skills (they fire on intent), not commands.
 for s in app-staging-data app-staging-lambda-deploy; do

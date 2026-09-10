@@ -20,7 +20,7 @@ agent's binary.
 |---|---|
 | `commands/shared/` | **both** agents — one file, cannot drift |
 | `commands/claude/` | Claude Code only |
-| `commands/cursor/` | Cursor only — just `/ask` |
+| `commands/cursor/` | Cursor only — `/ask` and `/debate` (up to three bounded `/ask` rounds with a claims ledger) |
 
 `~/.claude/commands/` and `~/.cursor/{commands,skills}/` are symlinks into those, so editing a
 command from either agent edits the tracked file, and `git pull` carries it to every Mac. A wiped
@@ -41,7 +41,8 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 | `/ship` | `~/.claude/commands/ship.md` | `~/.cursor/commands/ship.md` | **one file** — 310 lines |
 | `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — 76 lines |
 | `/pr-shots` | `~/.claude/commands/pr-shots.md` | `~/.cursor/commands/pr-shots.md` | **one file** — 364 lines |
-| `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`. 173 lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`. 49 lines. | **two files, on purpose** |
+| `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`. 173 lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`. 50 lines. | **two files, on purpose** |
+| `/debate` | — | `~/.cursor/commands/debate.md` — up to three bounded `claude -p` rounds (no subagents, no MCP, `--max-turns 12`), claims ledger next to the plan, Cursor verifies every claim before recording it. 109 lines. | **Cursor only** |
 | `/docs-update` | `~/.claude/commands/docs-update.md` — 207 lines | — none — | Claude only |
 | `/update-markdown` | `~/.claude/commands/update-markdown.md` — 94 lines | — none — | Claude only |
 | `/explain` | `~/.claude/commands/explain.md` — 66 lines | — none — | Claude only |
@@ -671,7 +672,8 @@ cd "<the clone under review>" && claude -p --permission-mode plan "<your prompt>
 - `--permission-mode plan` keeps it read-only. Never use `--dangerously-skip-permissions`.
 - Add `--model opus` for the strongest review; omit for the default.
 - It may take a minute or two on a large diff. Let it finish.
-- One call. Do not retry in a loop.
+- One call. Do not retry in a loop. For a multi-round argument use `/debate`, which bounds
+  each round (no subagents, no MCP, `--max-turns`) and carries a claims ledger between rounds.
 
 Ask for disagreement, not a summary. Include:
 
