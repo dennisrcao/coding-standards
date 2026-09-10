@@ -33,6 +33,11 @@ skill resolves without per-repo edits.
 **Do not** add a per-repo stdio server with its own `--user-data-dir`. That is the
 setup this document used to prescribe, and it is what caused the problem below.
 
+**Per-core Fabric meshes do not get a second Playwright server.** Isolation on
+`mesh.core-N.*` still shares this `:8931` browser. Two meshes Playwright-ing at
+once steal tabs. Serialize, or skip UI on one mesh. A second MCP port is not in
+v1. See [092-duplicate-workspaces-and-meshes.md](092-duplicate-workspaces-and-meshes.md).
+
 ## Why this replaced per-repo profiles
 
 The old rule gave each repo its own `playwright-mcp` process and browser profile.
