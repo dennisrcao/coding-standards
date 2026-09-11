@@ -29,6 +29,10 @@ feature branch — and close out the `docs-hub` ticket that drove the work, if t
 This is repo-agnostic. It resolves the base branch rather than assuming one: `staging` on
 app-monorepo, `main` almost everywhere else. Never hardcode either.
 
+**Part of a GitHub PR stack?** Land **one layer** with `/close-out` when that layer is ready —
+merge bottom-up. Creating or updating the stack on GitHub is `/stack` (`gh-stack-alias`), not
+this command. Do not `/close-out` the whole stack as one PR.
+
 **The failure this exists to prevent is a merge that leaves the operator worse off than before** —
 merged on red CI, merged with someone else's uncommitted work swept into the commit, merged and
 then abandoned on a stale feature branch, or a deploy fired that nobody knew was coming.

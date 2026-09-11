@@ -80,7 +80,7 @@ done
 # Claude honours the YAML frontmatter and the !`cmd` context lines; Cursor
 # ignores both and renders them as text. That is the accepted cost of one file.
 # ---------------------------------------------------------------------------
-for f in argue close-out driver ship pr-description pr-shots tester; do
+for f in argue close-out driver ship stack pr-description pr-shots tester; do
   link "shared/$f.md" "$HOME/.claude/commands/$f.md"
   link "shared/$f.md" "$HOME/.cursor/commands/$f.md"
 done
@@ -134,8 +134,32 @@ if [ -f "$FABRIC_MDC_SRC" ]; then
   fi
 fi
 
+# gh stack wrapper — origin on github-work needs an https://github.com remote for submit/sync
+GH_STACK_SRC="$(cd "$REPO/scripts" && pwd)/gh-stack-alias.sh"
+GH_STACK_DST="$HOME/.local/bin/gh-stack-alias"
+mkdir -p "$(dirname "$GH_STACK_DST")"
+if [ -L "$GH_STACK_DST" ] && [ "$(readlink "$GH_STACK_DST")" = "$GH_STACK_SRC" ]; then
+  skipped=$((skipped + 1))
+elif [ -f "$GH_STACK_DST" ] && [ ! -L "$GH_STACK_DST" ]; then
+  if cmp -s "$GH_STACK_DST" "$GH_STACK_SRC"; then
+    rm -f "$GH_STACK_DST"
+  else
+    mv "$GH_STACK_DST" "$GH_STACK_DST.local-$STAMP"
+    echo "  BACKED UP (differs from repo): $GH_STACK_DST.local-$STAMP"
+    backed_up=$((backed_up + 1))
+  fi
+  ln -s "$GH_STACK_SRC" "$GH_STACK_DST"
+  linked=$((linked + 1))
+else
+  rm -f "$GH_STACK_DST"
+  ln -s "$GH_STACK_SRC" "$GH_STACK_DST"
+  linked=$((linked + 1))
+fi
+chmod +x "$GH_STACK_SRC"
+
 echo "linked $linked, already correct $skipped, backed up $backed_up, pruned $pruned"
 echo
 echo "Verify:"
 echo "  ls -l ~/.claude/commands/ ~/.cursor/commands/"
+echo "  command -v gh-stack-alias"
 echo "  python3 $REPO/scripts/build-slash-command-doc.py   # regenerate the reference doc"

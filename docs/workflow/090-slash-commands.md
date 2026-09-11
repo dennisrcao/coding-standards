@@ -67,6 +67,7 @@ view, what Cursor ignores in a shared file, and the bar a command has to clear t
 | Command | Agents | What it is for |
 |---|---|---|
 | `/close-out` | both | I've signed off — **land it.** Commit, PR, **thorough review** (repo `/code-review` skill or Bugbot when present; `skip review` opts out), CI, merge to the repo's base branch, then leave the checkout on that branch instead of stranded on the feature branch. Stops for a yes when merging fires a deploy. Closes out the `docs-hub` ticket that drove the work — strike, then archive or mark deferred. |
+| `/stack` | both | Multi-PR **GitHub stack** on app-monorepo (or any repo whose `origin` is a `github-work` SSH alias). Drives **`gh-stack-alias`** — never bare `gh stack submit`. Use when the hub plan lists H0…Hn or "PR stack"; `/close-out` still lands one layer at a time. |
 | `/ship` | both | Take a behavior from wherever it is now through review and staging to **production**, and prove both sides landed. |
 | `/pr-description` | both | Ticket link + a before/after behavior table. Nothing else. |
 | `/pr-shots` | both | Before/after **screenshots** in the PR body — shoots each changed surface on the base deploy and on the PR preview, hosts the images, rewrites the body outcome-first (one `## N ·` section per thing that is now true, Base / This PR under each, captions below the images). The only command that edits a PR. |

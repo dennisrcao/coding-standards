@@ -38,7 +38,7 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 | Slash command | Claude Code | Cursor | Shared? |
 |---|---|---|---|
 | `/argue` | `~/.claude/commands/argue.md` | `~/.cursor/commands/argue.md` | **one file** — 83 lines — Fabric plan debate; `argue-protocol.md` is the engine |
-| `/close-out` | `~/.claude/commands/close-out.md` | `~/.cursor/commands/close-out.md` | **one file** — 297 lines |
+| `/close-out` | `~/.claude/commands/close-out.md` | `~/.cursor/commands/close-out.md` | **one file** — 303 lines |
 | `/ship` | `~/.claude/commands/ship.md` | `~/.cursor/commands/ship.md` | **one file** — 310 lines |
 | `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — 76 lines |
 | `/pr-shots` | `~/.claude/commands/pr-shots.md` | `~/.cursor/commands/pr-shots.md` | **one file** — 364 lines |
@@ -140,10 +140,9 @@ The bar is low, now that frontmatter is free:
 
 - **Resolve, do not assume.** Base branch, repo root, package manager, test command — detect them.
   A command that hardcodes `staging` or `pnpm` is a Acme command wearing a global name.
-- **Two install paths, same content.** app-monorepo vendors `.claude/skills/` for coworkers on a
-  single-repo checkout. `commands/shared/<name>/` → `link-slash-commands.sh` is for a
-  multi-root workspace (one global copy). `/close-out` invokes `code-review` from whichever path
-  is present; multi-checkout workspaces should run the link script and treat globals as canonical.
+- **Repo-local skills are opt-in per command.** `.claude/skills/code-review/` exists in
+  app-monorepo and nowhere else. `/close-out` invokes it when present; other shared commands should
+  not assume it exists unless they document that ladder.
 - **Say in prose what the frontmatter collects**, so the Cursor side is not flying blind.
 - **Put it in `commands/shared/`** and let `link-slash-commands.sh` wire both agents.
 
@@ -185,6 +184,10 @@ feature branch — and close out the `docs-hub` ticket that drove the work, if t
 
 This is repo-agnostic. It resolves the base branch rather than assuming one: `staging` on
 app-monorepo, `main` almost everywhere else. Never hardcode either.
+
+**Part of a GitHub PR stack?** Land **one layer** with `/close-out` when that layer is ready —
+merge bottom-up. Creating or updating the stack on GitHub is `/stack` (`gh-stack-alias`), not
+this command. Do not `/close-out` the whole stack as one PR.
 
 **The failure this exists to prevent is a merge that leaves the operator worse off than before** —
 merged on red CI, merged with someone else's uncommitted work swept into the commit, merged and
@@ -247,8 +250,10 @@ reclassified with `file:line` evidence.
 
 ### 2b — Repo `/code-review` skill (when it exists)
 
-If the repo root has `.claude/skills/code-review/SKILL.md`, follow it with fixed point
-`origin/<base>`. Run **both** Standards and Spec axes — `/close-out` is not an excuse to skip Spec.
+If `code-review` is available — `~/.cursor/skills/code-review/SKILL.md` or
+`~/.claude/skills/code-review/SKILL.md` (hub symlink from `link-slash-commands.sh`), or a repo-local
+`.claude/skills/code-review/SKILL.md` — follow it with fixed point `origin/<base>`. Run **both**
+Standards and Spec axes — `/close-out` is not an excuse to skip Spec.
 
 ### 2c — Cursor Bugbot (when 2b does not apply, or as a second lens in Cursor)
 
@@ -718,7 +723,6 @@ survive a wipe — that `ls -l` is the audit. The link script also **prunes**: i
 and dangling links, which is how the old `~/.cursor/skills/close-out/` skill gets removed rather
 than lingering as a second, stale `/close-out`.
 
-Personal skills are shared the same way, from `commands/shared/<name>/SKILL.md` — see the roster in
-[090-slash-commands.md](090-slash-commands.md) under **Global skills**. They stay *skills* rather
-than commands because they are meant to fire on intent, not only on a typed slash. After adding or
-renaming one, extend the `SHARED_SKILLS` array in `link-slash-commands.sh` and re-run the script.
+Two personal skills are shared the same way, from `commands/shared/`: `app-staging-data` and
+`app-staging-lambda-deploy`. They stay *skills* rather than commands because they are meant to
+fire on intent, not only on a typed slash.
