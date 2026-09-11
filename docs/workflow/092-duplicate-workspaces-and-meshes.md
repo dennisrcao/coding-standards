@@ -1,5 +1,5 @@
 ```yaml
-description: This machine opens the same multi-root workspace twice (TV + laptop). Mesh is /driver core-N, not the focused folder.
+description: This machine opens the same multi-root workspace twice (TV + laptop). Mesh is /driver <slug>, not the focused folder.
 globs:
 alwaysApply: false
 ```
@@ -26,16 +26,18 @@ focused does not matter" — true for picking a folder inside one window, and
 
 ## What picks the mesh
 
-**`/driver core-N`.** Not the focused folder, not the window title.
+**`/driver <mesh>`.** Slugs match `app-multi.code-workspace` (`core-1`,
+`calendar-1`, `portfolio`, …). Not the focused folder, not the window title.
 
 | | |
 |---|---|
-| Pointer | `~/.agent-mesh/missions/ACTIVE-core-N` (no global `ACTIVE`) |
-| Channels | `mesh.core-N.driver` / `mesh.core-N.tester` |
-| Testers | `tester-up core-N a` → tmux `tester-core-N-a` |
-| Optional launch | `mesh-cursor core-N` sets `FABRIC_NAME` / `FABRIC_MESH` |
+| Pointer | `~/.agent-mesh/missions/ACTIVE-<mesh>` (no global `ACTIVE`) |
+| Channels | `mesh.<mesh>.driver` / `mesh.<mesh>.tester` |
+| Testers | `tester-up calendar-1 a` → tmux `tester-calendar-1-a` |
+| Registry | `mesh-list` — all slugs, checkouts, ports |
+| Optional launch | `mesh-cursor calendar-1` sets `FABRIC_NAME` / `FABRIC_MESH` |
 
-`/driver` with no core is illegal when two meshes can be live. Wrong core →
+`/driver` with no mesh is illegal when two meshes can be live. Wrong mesh →
 `/driver stop` that mesh and start the other. Do not `rebind`.
 
 A Claude tab inside Cursor is not a tester (see the protocol). Playwright is
