@@ -140,11 +140,10 @@ The bar is low, now that frontmatter is free:
 
 - **Resolve, do not assume.** Base branch, repo root, package manager, test command — detect them.
   A command that hardcodes `staging` or `pnpm` is a Acme command wearing a global name.
-- **Machine-global skills beat repo copies.** The spec-driven chain is in
-  `commands/shared/<name>/SKILL.md` → `~/.cursor/skills/` / `~/.claude/skills/` via
-  `link-slash-commands.sh`. `/close-out` invokes `code-review` when the skill is available
-  (global or repo-local); prefer the global symlink so seven Acme checkouts do not register
-  eleven duplicate skills in one workspace.
+- **Two install paths, same content.** app-monorepo vendors `.claude/skills/` for coworkers on a
+  single-repo checkout. `commands/shared/<name>/` → `link-slash-commands.sh` is for a
+  multi-root workspace (one global copy). `/close-out` invokes `code-review` from whichever path
+  is present; multi-checkout workspaces should run the link script and treat globals as canonical.
 - **Say in prose what the frontmatter collects**, so the Cursor side is not flying blind.
 - **Put it in `commands/shared/`** and let `link-slash-commands.sh` wire both agents.
 

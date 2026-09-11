@@ -45,10 +45,10 @@ view, what Cursor ignores in a shared file, and the bar a command has to clear t
 - **Resolve, don't assume — the base branch especially.** `git symbolic-ref refs/remotes/origin/HEAD`
   gives `staging` on app-monorepo and `main` nearly everywhere else. A command that hardcodes one is
   a Acme command wearing a global name.
-- **Prefer machine-global skills over repo copies.** The spec-driven chain lives in
-  `commands/shared/<name>/SKILL.md` and is symlinked into `~/.cursor/skills/` and
-  `~/.claude/skills/` by `link-slash-commands.sh`. A global command may invoke those by name;
-  do not assume a second copy under a repo's `.claude/skills/`.
+- **Machine-global skills are optional; Acme still vendors for the team.** Coworkers on a
+  single-repo checkout use `app-monorepo/.claude/skills/`. The hub copy in
+  `commands/shared/<name>/` is for `link-slash-commands.sh` (multi-root workspace on one
+  machine). A global command may invoke `code-review` from either path.
 
 ## Don't
 
@@ -102,9 +102,11 @@ headless critique with inline verification.
 
 ## Global skills (machine-wide, not slash commands)
 
-These live under `commands/shared/<name>/SKILL.md` and are wired by `link-slash-commands.sh` into
-`~/.cursor/skills/` and `~/.claude/skills/` — **one copy per machine**, available in every repo and
-every multi-root workspace without duplicating across app-monorepo checkouts.
+These live under `commands/shared/<name>/SKILL.md`. Run `link-slash-commands.sh` to symlink them into
+`~/.cursor/skills/` and `~/.claude/skills/` — **one copy per machine**, so a multi-root workspace
+does not register eleven skills per Acme checkout. **app-monorepo still ships the same skills in
+`.claude/skills/`** for coworkers who open one repo and never run the link script; keep the two
+copies in sync when you edit a skill (hub first, then copy or cherry-pick into Acme).
 
 | Skill | What it is for |
 |---|---|
@@ -123,8 +125,9 @@ every multi-root workspace without duplicating across app-monorepo checkouts.
 | `app-staging-lambda-deploy` | Staging lambda deploy helpers |
 
 **Provenance:** adapted from [mattpocock/skills](https://github.com/mattpocock/skills), first
-ported into app-monorepo in #403 (Artem Vozniuk), rewired for this monorepo. Hub copy is the
-maintained source; run `link-slash-commands.sh` after `git pull` on `docs-hub`.
+ported into app-monorepo in #403 (Artem Vozniuk). Hub copy is the machine-global install path;
+Acme `.claude/skills/` remains the default for single-repo checkout. After hub edits, mirror
+into Acme before merging agent workflow changes there.
 
 Walkthrough of the chain (Acme docs hub): `app-monorepo` →
 `apps/docs/content/projects/app/docs/technical/agents/spec-driven-workflow.md`.
