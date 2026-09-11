@@ -69,6 +69,7 @@ view, what Cursor ignores in a shared file, and the bar a command has to clear t
 | `/pr-description` | both | Ticket link + a before/after behavior table. Nothing else. |
 | `/pr-shots` | both | Before/after **screenshots** in the PR body — shoots each changed surface on the base deploy and on the PR preview, hosts the images, rewrites the body outcome-first (one `## N ·` section per thing that is now true, Base / This PR under each, captions below the images). The only command that edits a PR. |
 | `/ask` | both, two files | Ask the *other* agent to critique this without opening its window — then verify every claim before adopting it. |
+| `/argue` | both | Bounded **driver ↔ tmux tester** plan debate on Fabric (`plan-critique` / `plan-revise` → `plan-review` → verify → `plan-agree`). Ledger at `<plan>.argue.md`. Not `/debate` (headless CLI). |
 | `/docs-update` | Claude | Sweep a project's `docs-hub` `docs/development/` — verify each plan against the real repo, strike what landed, archive what's done, refresh section READMEs. **Full source below.** |
 | `/update-markdown` | Claude | Cross off what we actually implemented in the plan markdown we've been following; mark finished sections `✅`. |
 | `/explain` | Claude | I'm confused — explain it as a two-column table: how it behaves today vs. how it would behave if we built it. Explanation only, never edits. |
@@ -84,43 +85,18 @@ the plan only for what survived. That verification was its own command, `/CROSSC
 authoritative and is frequently wrong about the codebase — see
 [`050-anti-slop.md`](../tooling/050-anti-slop.md).
 
-## Planned: `/argue` (not shipped)
+## `/argue` vs `/ask` vs `/debate`
 
-Design approved 2026-08-27; **not implemented**. What is live is `/ask`, which now carries its own
-verification step inline.
+| | `/argue` | `/ask` | `/debate` |
+|---|---|---|---|
+| Opponent | tmux **testers** on a mesh (Fabric) | headless **other agent** CLI | headless `claude -p`, up to 3 rounds |
+| Loop | up to 3 `plan-critique` / `plan-revise` rounds | one volley | up to 3 CLI rounds |
+| Ledger | `<plan>.argue.md` | none | `<plan>.debate.md` |
+| When | driver mesh is up; plan before implement | cold second opinion, any repo | argue without testers |
 
-`/argue` replaces it with one **bounded two-round** loop: opponent objects → we verify every
-claim against real code → rebuttal with `file:line` evidence → opponent concedes or
-counter-examples. At most two opponent CLI calls. Plan markdown only — no code edits, no
-commit/push.
-
-Every objection ends in one of five states — never ambiguous:
-
-| Verdict | Meaning |
-|---|---|
-| **CONFIRMED** | Verified true; plan is wrong or incomplete here |
-| **REFUTED** | Verified false, with evidence that kills it |
-| **MISREAD** | True of other code / another plan |
-| **UNVERIFIABLE** | Product or design call — name whose |
-| **OPEN** | Not closed by evidence from either side |
-
-Evidence rule: an objection may only leave the board via `file:line`, real command output, or a
-commit SHA. Anything still OPEN / UNVERIFIABLE is written into the plan under
-`## ⚠ Unresolved after /argue` and blocks on the user.
-
-**When shipped — file layout**
-
-| Path | Action |
-|---|---|
-| `commands/shared/argue-protocol.md` | **new** — engine (rounds, verdicts, report, plan edits); **not** a slash command, not symlinked |
-| `commands/claude/argue.md` / `commands/cursor/argue.md` | **new** — thin wrappers; each names the *other* agent's binary |
-| `commands/claude/ask.md`, `commands/cursor/ask.md` | **delete** |
-
-Also update `scripts/link-slash-commands.sh` and `scripts/build-slash-command-doc.py` (they hardcode
-`ask` today), then regenerate this companion doc (`091`).
-
-Verify-only mode (pasted critique / screenshot) preserves the one-way use case `/ask` Step 4 covers
-today, with no rebuttal channel.
+Shipped 2026-09-10. Engine: `commands/shared/argue-protocol.md` (not symlinked). Command:
+`commands/shared/argue.md` (both agents). `/ask` is **not** replaced — it stays the one-volley
+headless critique with inline verification.
 
 ## Where the house rules they enforce actually live
 

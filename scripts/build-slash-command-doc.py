@@ -9,6 +9,7 @@ OUT = pathlib.Path('~/coding-standards/docs'
 # Shared commands are read from the Claude side; the Cursor path is the same file
 # via symlink, so reading either gives identical bytes.
 SRC = {
+    'argue':      HOME / '.claude/commands/argue.md',
     'closeout':   HOME / '.claude/commands/close-out.md',
     'ship':       HOME / '.claude/commands/ship.md',
     'prdesc':     HOME / '.claude/commands/pr-description.md',
@@ -70,6 +71,7 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 
 | Slash command | Claude Code | Cursor | Shared? |
 |---|---|---|---|
+| `/argue` | `~/.claude/commands/argue.md` | `~/.cursor/commands/argue.md` | **one file** — {n['argue']} lines — Fabric plan debate; `argue-protocol.md` is the engine |
 | `/close-out` | `~/.claude/commands/close-out.md` | `~/.cursor/commands/close-out.md` | **one file** — {n['closeout']} lines |
 | `/ship` | `~/.claude/commands/ship.md` | `~/.cursor/commands/ship.md` | **one file** — {n['ship']} lines |
 | `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — {n['prdesc']} lines |

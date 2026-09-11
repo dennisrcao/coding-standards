@@ -1,6 +1,6 @@
 ---
-description: Fabric driver of one app-monorepo mesh. Core required. Testers on that mesh may debate, implement, and Playwright; you still own the PR merge.
-argument-hint: "<core-N> [wait | no-wait | stop]  e.g. /driver core-1"
+description: Fabric driver of one workspace mesh. Mesh slug required. Testers on that mesh may debate, implement, and Playwright; you still own the PR merge.
+argument-hint: "<mesh> [wait | no-wait | stop]  e.g. /driver core-1 | /driver calendar-1"
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(pnpm:*), Bash(npm:*), Bash(pwd), Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(find:*), Bash(mkdir:*), Bash(date), Bash(tmux:*), Read, Grep, Glob, Edit, Write, Shell, mcp__fabric__*, mcp__user-fabric__*
 ---
 
@@ -8,44 +8,48 @@ allowed-tools: Bash(git:*), Bash(gh:*), Bash(pnpm:*), Bash(npm:*), Bash(pwd), Ba
 
 - Now: !`date '+%Y-%m-%d %H:%M %Z'`
 - FABRIC_MESH: !`printf '%s\n' "${FABRIC_MESH:-}"`
-- Mesh pointers: !`ls -1 ~/.agent-mesh/missions/ACTIVE-core-* 2>/dev/null || echo "(none)"`
+- Mesh pointers: !`ls -1 ~/.agent-mesh/missions/ACTIVE-* 2>/dev/null | grep -v '^.*ACTIVE-$' || echo "(none)"`
+- Known meshes: !`~/.agent-mesh/bin/mesh-list 2>/dev/null | tail -n +3 || echo "(run link-slash-commands.sh)"`
 - Cwd (not authoritative): !`git rev-parse --show-toplevel 2>/dev/null || pwd`
 
 `$ARGUMENTS`
 
 ---
 
-# /driver — own one per-core mesh
+# /driver — own one workspace mesh
 
-You are the **driver** of **one** mesh. Mesh key is `core-N` (a app-monorepo checkout), not
-the Cursor window, not the focused folder. TV Cursor and laptop Cursor can open the same
-`.code-workspace`; they must not share `cursor`, a global `ACTIVE`, or `role.*`.
+You are the **driver** of **one** mesh. Mesh key is a **workspace slug** from
+`app-multi.code-workspace` (`core-1`, `calendar-1`, `portfolio`, …) — not the Cursor
+window, not the focused folder. TV Cursor and laptop Cursor can open the same `.code-workspace`;
+they must not share `cursor`, a global `ACTIVE`, or `role.*`.
 
 **Do not run `/close-out` or merge** from inside `/driver`.
 
-## Resolve core (do this first)
+## Resolve mesh (do this first)
 
 First match wins:
 
-1. `$ARGUMENTS` contains a core slug (`core-1`, `1`, `app-monorepo-1`, `stop` plus a core, …).
+1. `$ARGUMENTS` contains a mesh slug (`core-1`, `calendar-1`, `claw-calendar`, `sigma`, `stop`
+   plus a mesh, …). Run `mesh-list` when unsure.
 2. Else `FABRIC_MESH` from `mesh-cursor` / the environment.
 3. **Else stop and ask.** Do not fall back to focused folder, cwd, or a single `ACTIVE`.
-   `/driver` with no core is illegal when two meshes can be live.
+   `/driver` with no mesh is illegal when two meshes can be live.
 
 ```text
 CHECKOUT=$(~/.agent-mesh/bin/resolve-checkout <slug>)
 PORT=$(~/.agent-mesh/bin/resolve-checkout --port <slug>)
-CORE=$(~/.agent-mesh/bin/resolve-checkout --core <slug>)
+PKG=$(~/.agent-mesh/bin/resolve-checkout --pkg <slug>)
+MESH=$(~/.agent-mesh/bin/resolve-checkout --core <slug>)
 ```
 
 Channels (never `role.tester` / `role.driver`):
 
-- Publish to testers: `mesh.<core>.tester`
-- Subscribe / drain / wait: `mesh.<core>.driver`
+- Publish to testers: `mesh.<mesh>.tester`
+- Subscribe / drain / wait: `mesh.<mesh>.driver`
 
-Pointer: `~/.agent-mesh/missions/ACTIVE-<core>` (e.g. `ACTIVE-core-1`). Never write the global
-`ACTIVE`. Identity to advertise: `cursor-<core>` in `meta.core` even if the Fabric process is
-still named `cursor`.
+Pointer: `~/.agent-mesh/missions/ACTIVE-<mesh>` (e.g. `ACTIVE-calendar-1`). Never write the
+global `ACTIVE`. Identity to advertise: `cursor-<mesh>` in `meta.core` even if the Fabric process
+is still named `cursor`.
 
 ## Testers are tmux, bound to this mesh
 
@@ -54,29 +58,31 @@ tab named `claude`). Spike 2026-09-10: unique `FABRIC_NAME` + pull delivery is n
 to those tabs — do not tell Dennis to `/tester` there.
 
 ```bash
+tester-up calendar-1 a      # tmux session tester-calendar-1-a
 tester-up core-1 a          # tmux session tester-core-1-a
-tester-restart core-1 a
+tester-restart calendar-1 a
 ```
 
-If `fabric_discover` shows no `tester-core-1-*` (filter `meta.core`), tell Dennis to run
-`tester-up <core> a` in a terminal. Never publish to a `claude`.
+If `fabric_discover` shows no `tester-<mesh>-*` (filter `meta.core`), tell Dennis to run
+`tester-up <mesh> a` in a terminal. Never publish to a `claude`.
 
-**Wrong core:** `/driver stop` this mesh, then `/driver` the other. Do **not** `rebind`. A mesh
-does not move. Testers on core-2 never wake for core-1 traffic.
+**Wrong mesh:** `/driver stop` this mesh, then `/driver` the other. Do **not** `rebind`. A mesh
+does not move. Testers on `calendar-2` never wake for `calendar-1` traffic.
 
 ## HARD RULES
 
 - **Reproduce before fixing** — same bar as `/ask` verification. Unreproducible →
   `**Status:** unreproducible` and a log line, not a guess-fix.
-- **All git/gh/pnpm in this mesh's checkout** — `git -C "$CHECKOUT" …`. Never touch another
-  `app-monorepo-N`.
+- **All git/gh in this mesh's checkout** — `git -C "$CHECKOUT" …`. Use `$PKG` (`pnpm` or `npm`)
+  for that repo's scripts. Never touch another mesh's checkout.
 - **Stage explicit paths** — never `git add -A`.
 - **Never publish or `fabric_request` to `agent.claude`.** Never naked `role.tester` /
   `role.driver`.
-- **No `fabric_request` in mesh work.** Publish, end the turn, drain `mesh.<core>.driver` on
+- **No `fabric_request` in mesh work.** Publish, end the turn, drain `mesh.<mesh>.driver` on
   the next `/driver`.
 - **No headless `claude -p` as a stand-in for a tester.**
-- **Drain first, every turn.** `fabric_drain({ channel: "mesh.<core>.driver" })`.
+- **Drain first, every turn.** `fabric_drain({ channel: "mesh.<mesh>.driver" })`.
+- **Port 0** (e.g. `producer-pal`) — code-only mesh; skip Playwright unless the mission names a URL.
 - **`fabric_discover`:** filter by `meta.core`. Ignore other meshes' testers.
 - **Delegation is optional.** You may still implement yourself. `implement` is not a replacement
   for you coding.
@@ -92,14 +98,15 @@ Create if missing:
 ```markdown
 # Mission: <branch>
 
-**Mesh:** `core-N`
+**Mesh:** `calendar-1`
 **Branch:** …
 **Base:** …
 **PR:** …
-**Driver core:** `core-N`
-**Driver checkout:** ~/Desktop/app-monorepo-N
-**Driver port:** :5173
-**Driver Fabric:** cursor-core-N
+**Driver mesh:** `calendar-1`
+**Driver checkout:** ~/Desktop/claw-calendar
+**Driver port:** :3000
+**Driver pkg:** npm
+**Driver Fabric:** cursor-calendar-1
 **Opened:** …
 
 ## Scopes
@@ -114,25 +121,25 @@ Create if missing:
 ## Log
 ```
 
-Write the path to `~/.agent-mesh/missions/ACTIVE-<core>` only. Fill `## Scopes` before testers
-start. Roster lines include mesh (`mesh=core-1`).
+Write the path to `~/.agent-mesh/missions/ACTIVE-<mesh>` only. Fill `## Scopes` before testers
+start. Roster lines include mesh (`mesh=calendar-1`).
 
-If `$ARGUMENTS` is `stop` (with the core already resolved), skip to **/driver stop**.
+If `$ARGUMENTS` is `stop` (with the mesh already resolved), skip to **/driver stop**.
 
 ## Step 2 — Fabric setup
 
 1. `fabric_identity`. If down, log it and continue file-only.
-2. `fabric_setPresence({ visible: true, meta: { role: "driver", core, branch, checkout, port, status: "busy" } })`.
-3. `fabric_subscribe({ channel: "mesh.<core>.driver" })`.
-4. `fabric_drain({ channel: "mesh.<core>.driver" })`.
-5. `fabric_publish({ channel: "mesh.<core>.tester", payload: { kind: "driver-online", mesh: "<core>", branch, sha, checkout, port } })`.
+2. `fabric_setPresence({ visible: true, meta: { role: "driver", core: mesh, branch, checkout, port, status: "busy" } })`.
+3. `fabric_subscribe({ channel: "mesh.<mesh>.driver" })`.
+4. `fabric_drain({ channel: "mesh.<mesh>.driver" })`.
+5. `fabric_publish({ channel: "mesh.<mesh>.tester", payload: { kind: "driver-online", mesh, branch, sha, checkout, port } })`.
 6. When the mission is new, or a plan needs testers, publish `mission-assign` or `plan-critique`
-   on `mesh.<core>.tester`.
+   on `mesh.<mesh>.tester`.
 
 ```json
 {
   "kind": "mission-assign",
-  "mesh": "core-1",
+  "mesh": "calendar-1",
   "mission": "~/.agent-mesh/missions/<slug>.md",
   "planPath": "<absolute path, optional>",
   "scopes": { "a": "<one line>", "b": "<one line>" },
@@ -140,19 +147,21 @@ If `$ARGUMENTS` is `stop` (with the core already resolved), skip to **/driver st
 }
 ```
 
-Plan debate (loop until `plan-agree` or you stop):
+Plan debate (loop until `plan-agree` or you stop). Prefer **`/argue <mesh>`** — it runs the
+bounded loop, ledger (`<plan>.argue.md`), verification, and `plan-agree` per
+`argue-protocol.md`. Manual publish still works:
 
 ```json
-{ "kind": "plan-critique", "mesh": "core-1", "planPath": "…", "sha": "<sha>", "ask": "agree/disagree per section, file:line" }
+{ "kind": "plan-critique", "mesh": "calendar-1", "planPath": "…", "sha": "<sha>", "ask": "agree/disagree per section, file:line" }
 ```
 
-Tester replies `{ kind: "plan-review", verdict, notes }` on `mesh.<core>.driver`. You may
+Tester replies `{ kind: "plan-review", verdict, notes }` on `mesh.<mesh>.driver`. You may
 `plan-revise` and send it back, then `{ kind: "plan-agree", mesh, planPath, sha }`.
 
 If `## Roster` is empty, tell Dennis (Terminal, not a Claude tab):
 
 ```bash
-tester-up core-1 a && tester-up core-1 b
+tester-up calendar-1 a && tester-up calendar-1 b
 ```
 
 ## Step 3 — work loop
@@ -166,7 +175,7 @@ For each finding with `**Status:** open`, either fix it yourself **or** delegate
 3. Commit and push from that checkout.
 4. Update finding: `**Status:** fixed @ <short-sha>`.
 5. Append `## Log`: `retest <sha> fixed [F-a-1, …]`.
-6. `fabric_publish` on `mesh.<core>.tester`: `{ kind: "retest", mesh, branch, sha, fixed: [...] }`.
+6. `fabric_publish` on `mesh.<mesh>.tester`: `{ kind: "retest", mesh, branch, sha, fixed: [...] }`.
 
 ### Tester implements (`implement`)
 
@@ -175,7 +184,7 @@ Optional, per task. Tester may edit, commit, and push **on this mesh's feature b
 ```json
 {
   "kind": "implement",
-  "mesh": "core-1",
+  "mesh": "calendar-1",
   "task": "<what to do>",
   "files": ["<optional paths>"],
   "sha": "<base sha>",
@@ -183,14 +192,14 @@ Optional, per task. Tester may edit, commit, and push **on this mesh's feature b
 }
 ```
 
-They reply `{ kind: "implement-done", mesh, sha, paths, tester }` on `mesh.<core>.driver`. You
-review, then `retest` or merge-prep yourself. They must not merge, force-push `main`/`staging`,
-or touch another Core-N.
+They reply `{ kind: "implement-done", mesh, sha, paths, tester }` on `mesh.<mesh>.driver`. You
+review, then `retest` or merge-prep yourself. They must not merge, force-push protected branches,
+or touch another mesh's checkout.
 
 ### Playwright on the mesh port
 
 ```json
-{ "kind": "playwright", "mesh": "core-1", "url": "http://localhost:<port>/", "task": "<flow>" }
+{ "kind": "playwright", "mesh": "calendar-1", "url": "http://localhost:<port>/", "task": "<flow>" }
 ```
 
 One Playwright MCP on `:8931` for the **whole machine**. Two meshes Playwright-ing at once
@@ -198,17 +207,17 @@ steal tabs. Serialize, or skip Playwright on one mesh. Not a second server in v1
 
 ## Step 4 — wait mode (default unless `$ARGUMENTS` contains `no-wait`)
 
-- `fabric_wait({ channel: "mesh.<core>.driver", timeout_ms: 55000 })` in a loop.
+- `fabric_wait({ channel: "mesh.<mesh>.driver", timeout_ms: 55000 })` in a loop.
 - Stop after **5** consecutive empty waits or when testers publish `done` / `implement-done`
   for the current sha.
 - Cursor's Fabric server is pull mode and cannot be woken. A late reply sits until the next
-  drain. Say so ("waiting on tester-core-1-a; run `/driver core-1` to pick it up").
+  drain. Say so ("waiting on tester-calendar-1-a; run `/driver calendar-1` to pick it up").
 
 `fabric_wait` is **only** allowed inside `/driver` wait mode.
 
 ## Step 5 — report
 
-Mesh, findings, commits, tester `done` / `implement-done` per scope, whether `ACTIVE-<core>`
+Mesh, findings, commits, tester `done` / `implement-done` per scope, whether `ACTIVE-<mesh>`
 stays.
 
 ## /driver stop
@@ -216,8 +225,8 @@ stays.
 Only this mesh:
 
 1. Append `mission closed` to `## Log`.
-2. `fabric_publish` on `mesh.<core>.tester`: `{ kind: "mission-closed", mesh, branch }`.
+2. `fabric_publish` on `mesh.<mesh>.tester`: `{ kind: "mission-closed", mesh, branch }`.
 3. `fabric_setPresence({ visible: false })`.
-4. Remove `~/.agent-mesh/missions/ACTIVE-<core>` only. Leave other `ACTIVE-core-*` alone.
-5. Kill tmux sessions matching `tester-<core>-*` (e.g. `tester-core-1-a`). Do not kill
-   `tester-core-2-*`.
+4. Remove `~/.agent-mesh/missions/ACTIVE-<mesh>` only. Leave other `ACTIVE-*` alone.
+5. Kill tmux sessions matching `tester-<mesh>-*` (e.g. `tester-calendar-1-a`). Do not kill
+   other meshes' `tester-*` sessions.

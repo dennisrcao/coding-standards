@@ -37,6 +37,7 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 
 | Slash command | Claude Code | Cursor | Shared? |
 |---|---|---|---|
+| `/argue` | `~/.claude/commands/argue.md` | `~/.cursor/commands/argue.md` | **one file** — 83 lines — Fabric plan debate; `argue-protocol.md` is the engine |
 | `/close-out` | `~/.claude/commands/close-out.md` | `~/.cursor/commands/close-out.md` | **one file** — 297 lines |
 | `/ship` | `~/.claude/commands/ship.md` | `~/.cursor/commands/ship.md` | **one file** — 310 lines |
 | `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — 76 lines |
