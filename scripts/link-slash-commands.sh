@@ -97,7 +97,13 @@ link "cursor/ask.md" "$HOME/.cursor/commands/ask.md"
 link "cursor/debate.md" "$HOME/.cursor/commands/debate.md"
 
 # Shared skills — these stay skills (they fire on intent), not commands.
-for s in app-staging-data app-staging-lambda-deploy; do
+SHARED_SKILLS=(
+  app-staging-data app-staging-lambda-deploy
+  # Spec-driven chain (adapted from mattpocock/skills → Acme #403; hub is source of truth)
+  grilling grill-with-docs domain-modeling to-spec to-tickets implement tdd code-review
+  diagnosing-bugs handoff sentry-to-ticket
+)
+for s in "${SHARED_SKILLS[@]}"; do
   # an older setup made ~/.claude/skills/<name> a symlink to the ~/.cursor copy; replace it with a real dir
   [ -L "$HOME/.claude/skills/$s" ] && rm -f "$HOME/.claude/skills/$s"
   link "shared/$s/SKILL.md" "$HOME/.claude/skills/$s/SKILL.md"

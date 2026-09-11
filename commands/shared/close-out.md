@@ -90,8 +90,10 @@ reclassified with `file:line` evidence.
 
 ### 2b — Repo `/code-review` skill (when it exists)
 
-If the repo root has `.claude/skills/code-review/SKILL.md`, follow it with fixed point
-`origin/<base>`. Run **both** Standards and Spec axes — `/close-out` is not an excuse to skip Spec.
+If `code-review` is available — `~/.cursor/skills/code-review/SKILL.md` or
+`~/.claude/skills/code-review/SKILL.md` (hub symlink from `link-slash-commands.sh`), or a repo-local
+`.claude/skills/code-review/SKILL.md` — follow it with fixed point `origin/<base>`. Run **both**
+Standards and Spec axes — `/close-out` is not an excuse to skip Spec.
 
 ### 2c — Cursor Bugbot (when 2b does not apply, or as a second lens in Cursor)
 

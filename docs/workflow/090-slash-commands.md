@@ -45,8 +45,10 @@ view, what Cursor ignores in a shared file, and the bar a command has to clear t
 - **Resolve, don't assume — the base branch especially.** `git symbolic-ref refs/remotes/origin/HEAD`
   gives `staging` on app-monorepo and `main` nearly everywhere else. A command that hardcodes one is
   a Acme command wearing a global name.
-- **Don't call a repo-local skill.** `.claude/skills/code-review/` exists in app-monorepo and
-  nowhere else; a global command that invokes it is broken in every other repo.
+- **Prefer machine-global skills over repo copies.** The spec-driven chain lives in
+  `commands/shared/<name>/SKILL.md` and is symlinked into `~/.cursor/skills/` and
+  `~/.claude/skills/` by `link-slash-commands.sh`. A global command may invoke those by name;
+  do not assume a second copy under a repo's `.claude/skills/`.
 
 ## Don't
 
@@ -97,6 +99,35 @@ authoritative and is frequently wrong about the codebase — see
 Shipped 2026-09-10. Engine: `commands/shared/argue-protocol.md` (not symlinked). Command:
 `commands/shared/argue.md` (both agents). `/ask` is **not** replaced — it stays the one-volley
 headless critique with inline verification.
+
+## Global skills (machine-wide, not slash commands)
+
+These live under `commands/shared/<name>/SKILL.md` and are wired by `link-slash-commands.sh` into
+`~/.cursor/skills/` and `~/.claude/skills/` — **one copy per machine**, available in every repo and
+every multi-root workspace without duplicating across app-monorepo checkouts.
+
+| Skill | What it is for |
+|---|---|
+| `grill-with-docs` | Interview to sharpen a plan; updates `CONTEXT.md` and ADRs inline |
+| `grilling` | Interview primitive behind `grill-with-docs` |
+| `domain-modeling` | Glossary (`CONTEXT.md`) and lazy ADRs |
+| `to-spec` | Synthesize conversation into a parent GitHub spec issue (Acme) or hub plan |
+| `to-tickets` | Break a spec into tracer-bullet GitHub issues |
+| `implement` | Branch `issue-<N>-<slug>`, `/tdd`, `/code-review`, PR to base branch |
+| `tdd` | Red-green at pre-agreed seams |
+| `code-review` | Standards (`AGENTS.md`) + spec fidelity |
+| `diagnosing-bugs` | Disciplined bug loop with a feedback loop first |
+| `handoff` | Compact session into a handoff doc |
+| `sentry-to-ticket` | Sentry URL → implementable fix ticket |
+| `app-staging-data` | Staging RDS / campaign wipes (Acme account) |
+| `app-staging-lambda-deploy` | Staging lambda deploy helpers |
+
+**Provenance:** adapted from [mattpocock/skills](https://github.com/mattpocock/skills), first
+ported into app-monorepo in #403 (Artem Vozniuk), rewired for this monorepo. Hub copy is the
+maintained source; run `link-slash-commands.sh` after `git pull` on `docs-hub`.
+
+Walkthrough of the chain (Acme docs hub): `app-monorepo` →
+`apps/docs/content/projects/app/docs/technical/agents/spec-driven-workflow.md`.
 
 ## Where the house rules they enforce actually live
 
