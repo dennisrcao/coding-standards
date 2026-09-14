@@ -105,7 +105,62 @@ gh-stack-alias submit --open
 ## app-monorepo checkout discipline
 
 Match the hub plan's **Target repo** table: one `app-monorepo-N` per stack, correct Vite port.
-Name branches `chore/<theme>-<layer>` so `gh stack view` stays readable.
+Name branches `issue-<theme>-<layer>` or `chore/<theme>-<layer>` so `gh stack view` stays readable.
+
+### Stack layers by deploy surface (required on app-monorepo)
+
+**Do not ship one megacommit on the stack tip** that mixes api-server, Studio, and
+py-lambdas when the plan needs staging QA on a preview URL. Previews deploy **frontend only**;
+they always call **staging api-server** (`VITE_AM_API_BASE` → staging `/api/v1`). There is
+no preview AM. Until the AM layer merges to `staging`, the top preview cannot exercise new
+backend routes or migrations.
+
+Split the stack **by what deploys when merged to `staging`**, not only by plan phase number:
+
+| Layer kind | Typical paths | Merge to `staging` unlocks |
+|---|---|---|
+| **AM / backend** | `apps/api-server/**`, migrations, `libs/shared-types` (codegen), compose slices in `libs/agent-contracts` that AM imports | Migrations run, new APIs live on staging AM |
+| **Studio / frontend** | `apps/studio/**`, `libs/data-access-am/**`, `libs/studio-types/**`, admin UI | Top-of-stack **preview URL** (`client.staging.example.com/preview/<branch-slug>/`) |
+| **Py-lambdas / agents** | `apps/py-lambdas/**`, agent registry entries for new lambdas | Agent deploy workflow (separate from AM + FE) |
+
+**Default order (bottom → top):** prior stack layers → **AM layer** → **Studio layer** →
+(optional) **agents layer**. Name branches so the suffix shows the surface, e.g.
+`issue-brand-kit-phase-3-am` then `issue-brand-kit-phase-3` (studio).
+
+**Plan PR-stack table** — list every layer with branch, deploy surface, and QA gate:
+
+```markdown
+| Layer | Branch | Deploy surface | QA on preview after merge to staging |
+|---|---|---|---|
+| 3 | `issue-…-phase-2` | none (tooling/docs) | n/a |
+| 4 | `issue-…-phase-3-am` | AM + migrations | staging AM has API; preview still old UI until layer 5 |
+| 5 | `issue-…-phase-3` | Studio (preview tip) | full E2E on preview URL |
+| 6 | `issue-…-agents` | py-lambdas | agent jobs pick up kit slices |
+```
+
+**Coworker QA link** — put the **top Studio layer** preview in the plan and PR body:
+
+`https://client.staging.example.com/preview/<branch-slug>/`
+
+**Merge for backend QA:** merge only the **AM layer** to `staging` first (bottom-up). That
+deploys AM + runs migrations; the existing preview URL on the tip branch then talks to real
+kit APIs. Do not wait for the whole stack to merge before unblocking backend QA.
+
+**Implementing a split after a megacommit landed:**
+
+```bash
+git checkout <parent-layer>
+git checkout -b issue-<theme>-<n>-am
+git checkout <megacommit> -- apps/api-server/ libs/shared-types/ …  # AM paths only
+# commit, push, gh stack add issue-<theme>-<n>-am
+git checkout -b issue-<theme>-<n> issue-<theme>-<n>-am
+git checkout <megacommit> -- apps/studio/ apps/py-lambdas/ …  # remaining paths
+# commit, push, gh stack add issue-<theme>-<n>
+gh-stack-alias submit --open
+```
+
+Reference: `apps/docs/content/projects/app/docs/technical/deployed-environments.md` (PR
+previews + staging AM).
 
 ## If submit fails
 
