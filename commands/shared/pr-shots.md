@@ -95,8 +95,18 @@ stale or missing deploy produces a confidently wrong PR body.
 
 ## 2. Choose the surfaces
 
-Infer from the diff, then **confirm with me before shooting**. Per surface: a `label`, a
-`route`, and one sentence on what changed.
+Per surface: a `label`, a `route`, and one sentence on what changed.
+
+**Confirm gate — skip it when surfaces are already locked.** Infer from the diff, then:
+
+| Who is running | What to do |
+|---|---|
+| Interactive `/pr-shots` with a human in the chat | Confirm the surface list **before** shooting |
+| Mesh tester / Fabric `playwright` / `$ARGUMENTS` already lists `surfaces` or `prs[].surfaces` | **Do not wait.** Use the locked list. Say in the report which list you used |
+| Stack job that names several PRs | Run each PR’s shot pass **to completion** (host + `gh pr edit`) before claiming done — parallel tabs OK; do not stop after resolving hosts |
+
+Leaving “waiting for confirm” with no human in the loop is a failed run — the PR body stays
+the old text and looks like the command never ran.
 
 - **Same data both sides** — same ids, same fixture. Different data either side and the
   reader cannot separate your change from the content.
@@ -354,6 +364,16 @@ Write to a file next to the screenshots, then:
 gh pr edit "$PR" --body-file <file>
 ```
 
+**Done-gate (mandatory before claiming finished).** The old Summary/Test-plan body still
+showing on GitHub means the run failed, even if PNGs exist locally. After every `gh pr edit`:
+
+```bash
+gh pr view "$PR" --json body -q .body | grep -E 'pr-shots/|blob/pr-shots/' | head
+```
+
+Expect at least one hosted image URL per surface. Empty → re-edit; do not publish `done`.
+For a stack of N PRs, every PR must pass this gate.
+
 Re-running overwrites both the objects and the body, so this is idempotent.
 
 ## 6. Report
@@ -361,4 +381,4 @@ Re-running overwrites both the objects and the body, so this is idempotent.
 Name the surfaces captured, the URLs, which host each side came from (and if the "after"
 was local, why the preview could not be used), and anything skipped and why. If a pair came out
 identical, say so plainly — that is a finding about the change, not a failure of the
-command.
+command. Quote the `gh pr view` grep that passed the done-gate for each PR.
