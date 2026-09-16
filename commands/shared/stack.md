@@ -49,17 +49,20 @@ It ensures an `ghstack` HTTPS remote exists and passes `--remote ghstack` to `su
 
 ### 1. Start a new stack
 
+**A layer is a branch, not a commit.** Two commits on one branch is one layer, and `submit` will
+refuse the branch as "not part of a stack". Cut a branch per layer before `init`.
+
 ```bash
 git fetch origin staging
 git checkout -b chore/my-theme-layer-1 origin/staging
 # … edit, commit …
-gh-stack-alias init --trunk staging
+gh-stack-alias init --base staging chore/my-theme-layer-1
 ```
 
 Or turn existing branches into a stack:
 
 ```bash
-gh-stack-alias init branch-1 branch-2 branch-3 --trunk staging
+gh-stack-alias init --base staging branch-1 branch-2 branch-3
 ```
 
 ### 2. Add the next layer
