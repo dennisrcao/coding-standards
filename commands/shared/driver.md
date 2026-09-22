@@ -1,7 +1,7 @@
 ---
 description: Fabric driver of one workspace mesh. Mesh slug required. Testers on that mesh may debate, implement, and Playwright; you still own the PR merge.
-argument-hint: "<mesh> [wait | no-wait | stop]  e.g. /driver core-1 | /driver calendar-1"
-allowed-tools: Bash(git:*), Bash(gh:*), Bash(pnpm:*), Bash(npm:*), Bash(pwd), Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(find:*), Bash(mkdir:*), Bash(date), Bash(tmux:*), Read, Grep, Glob, Edit, Write, Shell, mcp__fabric__*, mcp__user-fabric__*
+argument-hint: "<mesh> [wait | no-wait | no-testers | stop]  e.g. /driver core-1 | /driver calendar-1"
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(pnpm:*), Bash(npm:*), Bash(pwd), Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(find:*), Bash(mkdir:*), Bash(date), Bash(tmux:*), Bash(sleep:*), Bash(~/.agent-mesh/bin/tester-up:*), Bash(~/.agent-mesh/bin/tester-restart:*), Read, Grep, Glob, Edit, Write, Shell, mcp__fabric__*, mcp__user-fabric__*
 ---
 
 ## Context (auto-collected)
@@ -63,8 +63,9 @@ tester-up core-1 a          # tmux session tester-core-1-a
 tester-restart calendar-1 a
 ```
 
-If `fabric_discover` shows no `tester-<mesh>-*` (filter `meta.core`), tell Dennis to run
-`tester-up <mesh> a` in a terminal. Never publish to a `claude`.
+You launch them yourself (Step 2, item 5) — `tester-up` is a plain script, runnable from this tab.
+The rule above is about where the tester *lives* (tmux), not who starts it. Never publish to a
+`claude`.
 
 **Wrong mesh:** `/driver stop` this mesh, then `/driver` the other. Do **not** `rebind`. A mesh
 does not move. Testers on `calendar-2` never wake for `calendar-1` traffic.
@@ -132,8 +133,17 @@ If `$ARGUMENTS` is `stop` (with the mesh already resolved), skip to **/driver st
 2. `fabric_setPresence({ visible: true, meta: { role: "driver", core: mesh, branch, checkout, port, status: "busy" } })`.
 3. `fabric_subscribe({ channel: "mesh.<mesh>.driver" })`.
 4. `fabric_drain({ channel: "mesh.<mesh>.driver" })`.
-5. `fabric_publish({ channel: "mesh.<mesh>.tester", payload: { kind: "driver-online", mesh, branch, sha, checkout, port } })`.
-6. When the mission is new, or a plan needs testers, publish `mission-assign` or `plan-critique`
+5. **Launch missing testers** (skip if Fabric is down or `$ARGUMENTS` has `no-testers`).
+   `fabric_discover`, filter `meta.core == <mesh>`. For each scope in `## Scopes` with no
+   `tester-<mesh>-<scope>-*`, run `~/.agent-mesh/bin/tester-up <mesh> <scope>` (it needs
+   `ACTIVE-<mesh>` from Step 1, blocks until it has typed `/tester`, and refuses an existing
+   session — don't kill one, use `tester-restart` only if that tester is wedged). Then poll
+   `fabric_discover` (`sleep 15`, up to 4×) until each appears; add a Roster line per tester.
+   A launch that fails or never shows up → log it, show `tmux capture-pane -p -t
+   tester-<mesh>-<scope> -S -15`, and carry on without that scope. Launch **before** step 6 —
+   push delivery drops messages published before a tester subscribes.
+6. `fabric_publish({ channel: "mesh.<mesh>.tester", payload: { kind: "driver-online", mesh, branch, sha, checkout, port } })`.
+7. When the mission is new, or a plan needs testers, publish `mission-assign` or `plan-critique`
    on `mesh.<mesh>.tester`.
 
 ```json
@@ -158,11 +168,7 @@ bounded loop, ledger (`<plan>.argue.md`), verification, and `plan-agree` per
 Tester replies `{ kind: "plan-review", verdict, notes }` on `mesh.<mesh>.driver`. You may
 `plan-revise` and send it back, then `{ kind: "plan-agree", mesh, planPath, sha }`.
 
-If `## Roster` is empty, tell Dennis (Terminal, not a Claude tab):
-
-```bash
-tester-up calendar-1 a && tester-up calendar-1 b
-```
+If `## Roster` is still empty after step 5, say which launches failed and why.
 
 ## Step 3 — work loop
 
