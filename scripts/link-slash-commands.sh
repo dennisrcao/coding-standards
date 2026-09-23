@@ -86,7 +86,7 @@ for f in argue close-out driver ship stack pr-description pr-shots tester; do
 done
 
 # Claude Code only
-for f in ask docs-update update-markdown explain tester-up; do
+for f in ask docs-update update-markdown explain tester-up driver-up; do
   link "claude/$f.md" "$HOME/.claude/commands/$f.md"
 done
 
