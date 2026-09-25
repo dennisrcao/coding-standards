@@ -78,10 +78,14 @@ tab named `claude`; spike 2026-09-10 failed). If **In tmux** says `no`, tell Den
 5. Note **Driver port**. Read `## Scopes`.
 6. `fabric_identity`. Bus down → file-only, note it in `## Log`.
 7. `fabric_setPresence({ visible: true, meta: { role: "tester", core: mesh, scope, branch, checkout, port, status: "busy" } })`.
-8. `fabric_subscribe({ channel: "mesh.<mesh>.tester" })`.
-9. `fabric_publish` on `mesh.<mesh>.driver`:
+8. `fabric_subscribe({ channel: "mesh.<mesh>.tester" })` — broadcast (`driver-online`, shared
+   `mission-assign`, and driver fallbacks).
+9. `fabric_subscribe({ channel: "mesh.<mesh>.tester.<scope>" })` — **your** scoped inbox. Drivers
+   that publish only here do not reach you without this subscribe (2026-09-25: pr-shots to
+   `mesh.core-2.tester.b` was dropped while B listened on broadcast only).
+10. `fabric_publish` on `mesh.<mesh>.driver`:
    `{ kind: "claim", mesh, branch, scope, tester: <fabric name> }`.
-10. Append `## Roster` (skip if already listed):
+11. Append `## Roster` (skip if already listed):
     `- <fabric-name> mesh=<mesh> scope=<scope> checkout=<path> port=<port> areas=<what you test>`.
 
 ## Step 1 — test the scope (default pass)
@@ -209,10 +213,13 @@ open another mesh's dev URL.
 
 ## Step 6 — short wait after `done`
 
-1. Ensure `fabric_subscribe({ channel: "mesh.<mesh>.tester" })`.
-2. `fabric_drain({ channel: "mesh.<mesh>.tester" })`.
+1. Ensure Step 0 subscriptions on **`mesh.<mesh>.tester`** and **`mesh.<mesh>.tester.<scope>`**.
+2. `fabric_drain({ channel: "mesh.<mesh>.tester" })` and
+   `fabric_drain({ channel: "mesh.<mesh>.tester.<scope>" })`.
 3. Loop up to **3** waits (≈ 3 min), or until `mission-closed`:
-   - `fabric_wait({ channel: "mesh.<mesh>.tester", timeout_ms: 55000 })`
+   - `fabric_wait({ channel: "mesh.<mesh>.tester.<scope>", timeout_ms: 55000 })` — scoped tasks
+   - if timed out, one `fabric_wait({ channel: "mesh.<mesh>.tester", timeout_ms: 55000 })` for
+     broadcast (`retest`, shared assigns)
    - `{ kind: "retest" }` → Step 4
    - `{ kind: "mission-assign" | "plan-critique" | "plan-revise" | "plan-agree" }` → Step 5
    - `{ kind: "implement" }` → Step 5b
@@ -220,8 +227,8 @@ open another mesh's dev URL.
    - `{ kind: "mission-closed" }` → report and **stop**
    - `{ kind: "driver-online" }` → note in log; stay in loop
    - `{ kind: "rebind" }` → ignore (retired); log it
-4. After 3 empty waits, report **idle, will wake on next `mesh.<mesh>.tester` message** and end
-   the turn.
+4. After 3 empty waits, report **idle, will wake on next message on your scoped or broadcast
+   tester channel** and end the turn.
 
 `fabric_wait` is allowed in `/tester` for this loop only.
 

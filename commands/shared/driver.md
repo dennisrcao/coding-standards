@@ -208,6 +208,12 @@ or touch another mesh's checkout.
 { "kind": "playwright", "mesh": "calendar-1", "url": "http://localhost:<port>/", "task": "<flow>" }
 ```
 
+**Fabric channel:** Prefer `mesh.<mesh>.tester.<scope>` for one tester (see `driver.next.md`).
+Testers must subscribe to that channel in `/tester` Step 0. Until every live tmux tester has
+reloaded `/tester` with that subscribe, also publish scoped UI work to **`mesh.<mesh>.tester`**
+(broadcast) or the task never arrives — publishing **only** to `.tester.b` with no subscriber
+drops silently. Include `scope` in the payload so the wrong tester can ignore it.
+
 One Playwright MCP on `:8931` for the **whole machine**. Two meshes Playwright-ing at once
 steal tabs. Serialize, or skip Playwright on one mesh. Not a second server in v1.
 
