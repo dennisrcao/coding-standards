@@ -55,6 +55,10 @@ tmux new-session -d -s playwright -n mcp -x 200 -y 50
 Sent with `send-keys` (not inline) so the shell survives a crash and you can still
 read the error.
 
+**Never pass `--headless`.** UI work on this machine expects a visible Chrome window for
+sign-in and screenshots. Headless MCP or CLI Playwright is not an acceptable substitute
+for `/pr-shots` or mesh `playwright` tasks.
+
 Two flags here are load-bearing — do not "simplify" them:
 
 - **`node …/@playwright/mcp/cli.js` rather than the `playwright-mcp` bin wrapper.**

@@ -131,6 +131,11 @@ moment to fall back to the local server, not to keep trying.
 
 Navigate, perform whatever interaction the shot needs, then screenshot.
 
+**Capture tool:** shared **headed** Playwright MCP (`/PLAYWRIGHT-start`, then
+`mcp__playwright__*`). First call opens visible Chrome. Do not use headless Playwright CLI,
+curl-only "captures", or Cursor `cursor-ide-browser` unless the user explicitly chose that.
+When auth blocks, stop and ask the human to sign in in the Playwright Chrome window.
+
 > **Playwright MCP writes screenshots to its own cwd** (the repo root), not the directory
 > you name, and refuses absolute paths outside its allowed roots. Pass a bare filename,
 > then `mv` it. Sweep the repo root afterwards — the files are gitignored there, but

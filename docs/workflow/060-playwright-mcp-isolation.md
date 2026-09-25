@@ -30,6 +30,22 @@ Start it with `/PLAYWRIGHT-start`, stop it with `/PLAYWRIGHT-stop`. Keep the ser
 name `playwright` so every `mcp__playwright__*` call and every `*_TestFrontend`
 skill resolves without per-repo edits.
 
+## Headed only (never headless for agent UI work)
+
+The shared server launches **visible Google Chrome** (`--browser chrome`, **no**
+`--headless`). That is intentional: staging and preview need human sign-in, and
+`/pr-shots` reviewers expect pixels from a real browser session.
+
+| Do | Do not |
+|---|---|
+| `mcp__playwright__*` after `/PLAYWRIGHT-start` | `npx playwright test --headed` / CLI screenshots for pr-shots or mesh UI |
+| First tool call when you need a window (Chrome opens then) | Assume "no Chrome" means MCP is down — port 8931 can be up with no browser yet |
+| `browser_tabs({ action: "new", url })` as the session's first Playwright action | `--headless` on `@playwright/mcp/cli.js` (forbidden on this machine) |
+| Ask the user to sign in in the Playwright Chrome window | Cursor `cursor-ide-browser` as a silent stand-in for mesh/pr-shots (different profile) |
+
+If an agent finishes a `playwright` or `/pr-shots` task without ever calling
+`mcp__playwright__*`, treat that as an incomplete run — not a successful headed pass.
+
 **Do not** add a per-repo stdio server with its own `--user-data-dir`. That is the
 setup this document used to prescribe, and it is what caused the problem below.
 
@@ -85,6 +101,7 @@ Do not "simplify" these; each was found by a failure.
 | `--allowed-hosts localhost:8931,127.0.0.1:8931` | The host check is a **literal string match** against `localhost:8931` regardless of what was bound, so a request arriving via `127.0.0.1` is answered `403 Access is only allowed at localhost:8931`. |
 | `node …/@playwright/mcp/cli.js` | Invoke the module, **not** the `playwright-mcp` bin wrapper. Several repos ship a reset step containing `pkill -f playwright-mcp`; the wrapper's path matches that pattern and the module path does not, so the shared server survives another repo's reset. |
 | `--browser chrome` | Resolves to `/Applications/Google Chrome.app/…/Google Chrome`, which likewise does not match the `pkill -f Chromium` in those same reset steps. |
+| **Never `--headless`** | Headless hides login and makes pr-shots / UI tasks look "done" without a window. Default MCP is headed; do not add this flag to `/PLAYWRIGHT-start`. |
 
 ## Claim a tab, or two sessions share one
 

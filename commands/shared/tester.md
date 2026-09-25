@@ -87,9 +87,11 @@ tab named `claude`; spike 2026-09-10 failed). If **In tmux** says `no`, tell Den
 ## Step 1 — test the scope (default pass)
 
 - **UI (Playwright MCP):** shared server `http://127.0.0.1:8931`. `/PLAYWRIGHT-start` if tools
-  fail. **Headed Chrome**, **new tab**, not a new window. First action:
-  `browser_tabs({ action: "new", url: "http://localhost:<mesh-port>/" })`
-  then snapshot / clicks. Sign in by hand if auth blocks.
+  fail (never `--headless`). **Headed Chrome** — your **first** `mcp__playwright__*` call opens
+  the window; say so if the human must sign in. **New tab**, not a new window. First action:
+  `browser_tabs({ action: "new", url: "<task url>" })` (mesh port or hosted URL from the payload)
+  then snapshot / clicks. Do not skip Playwright and run only vitest when the mission or
+  `playwright` message requires UI or pr-shots. Sign in by hand in that Chrome window if auth blocks.
 
   **Port 0** in the mission — skip Playwright unless the driver sent a `playwright` message with a
   URL.
@@ -198,8 +200,12 @@ When `{ kind: "implement", task, files?, sha, branch }` arrives:
 
 ## Step 5c — on playwright
 
-When `{ kind: "playwright", url, task }` arrives: new tab at **that url only** (must be this
-mesh's port). Run the flow. File findings. Publish `done`. Do not open another mesh's dev URL.
+When `{ kind: "playwright", url, task }` arrives: `/PLAYWRIGHT-start` if needed; then
+**immediately** `browser_tabs({ action: "new", url })` at **that url** (hosted preview URLs
+are fine when the driver locked them — you do not need `:5174` for that). Use headed
+`mcp__playwright__*` only — no headless CLI. Run the flow or `/pr-shots` capture. File
+findings. Publish `done` only after Playwright work when the task says capture/UI. Do not
+open another mesh's dev URL.
 
 ## Step 6 — short wait after `done`
 
