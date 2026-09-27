@@ -136,6 +136,22 @@ Navigate, perform whatever interaction the shot needs, then screenshot.
 curl-only "captures", or Cursor `cursor-ide-browser` unless the user explicitly chose that.
 When auth blocks, stop and ask the human to sign in in the Playwright Chrome window.
 
+**Shared browser — one window, many tabs (mesh / dual-host pr-shots):** One headed Chrome on
+`:8931` serves every MCP **client** on the machine — not one tab per tester unless each tester
+claims one
+([060-playwright-mcp-isolation.md](../docs/workflow/060-playwright-mcp-isolation.md)). Each
+client's **first** Playwright call must be `browser_tabs({ action: "new", url })`, never bare
+`browser_navigate`. A second client that navigates first inherits the first client's tab and
+invalidates before/after.
+
+| Mode | When |
+|---|---|
+| **Parallel (preferred)** | Driver assigns **scope a → before host**, **scope b → after host** at the same time. Each tester opens **its own** tab (`browser_tabs` `new` with that host's URL) before any other Playwright call. Include `browser_tabs` `list` + final URL in `done`. |
+| **Serial (always valid)** | One tester finishes before; driver sends after to the other scope (or the same tester with a **second** `browser_tabs` `new`). Use when unsure, when MCP reconnect failed, or when only one tester has Playwright tools. |
+
+Never open a second HTTP MCP client to "share" the server while another agent is mid-flow on the
+same tab. Do not close tabs another scope opened.
+
 > **Playwright MCP writes screenshots to its own cwd** (the repo root), not the directory
 > you name, and refuses absolute paths outside its allowed roots. Pass a bare filename,
 > then `mv` it. Sweep the repo root afterwards — the files are gitignored there, but

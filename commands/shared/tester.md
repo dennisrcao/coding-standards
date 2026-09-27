@@ -100,8 +100,10 @@ tab named `claude`; spike 2026-09-10 failed). If **In tmux** says `no`, tell Den
   **Port 0** in the mission — skip Playwright unless the driver sent a `playwright` message with a
   URL.
 
-  **Collision:** one Playwright server for the machine. If another mesh is already driving the
-  browser, wait or skip UI this pass — do not steal its tab.
+  **Collision:** one Playwright **server** for the machine (one window). Parallel UI on the **same
+  mesh** is OK when every scope starts with `browser_tabs` `new` — you get your own tab, not
+  another scope's. If another **mesh** is already driving Chrome, wait or skip UI — do not
+  `browser_navigate` on a tab you did not open. Never close or `select` a tab another tester owns.
 - **Unit/API:** narrowest command for your scope.
 - Blocked → finding with repro; do not wander into implementation unless the driver sent
   `implement`.
@@ -205,11 +207,13 @@ When `{ kind: "implement", task, files?, sha, branch }` arrives:
 ## Step 5c — on playwright
 
 When `{ kind: "playwright", url, task }` arrives: `/PLAYWRIGHT-start` if needed; then
-**immediately** `browser_tabs({ action: "new", url })` at **that url** (hosted preview URLs
-are fine when the driver locked them — you do not need `:5174` for that). Use headed
-`mcp__playwright__*` only — no headless CLI. Run the flow or `/pr-shots` capture. File
-findings. Publish `done` only after Playwright work when the task says capture/UI. Do not
-open another mesh's dev URL.
+**immediately** `browser_tabs({ action: "new", url })` at **that url** — this must be your
+**first** `mcp__playwright__*` call on this turn (hosted staging/preview URLs are fine; you do
+not need `:5173` when the payload names a deploy URL). Use headed `mcp__playwright__*` only — no
+headless CLI, no extra HTTP MCP client. Another scope may run Playwright at the same time on the
+same server; that is OK only if you both opened **separate** tabs first. Run the flow or
+`/pr-shots` capture. In `done`, include `browser_tabs` `list` and the URL you shot when the task
+is pr-shots or dual-host. Do not open another mesh's dev URL.
 
 ## Step 6 — short wait after `done`
 

@@ -134,7 +134,10 @@ If `$ARGUMENTS` is `stop` (with the mesh already resolved), skip to **/driver st
 3. `fabric_subscribe({ channel: "mesh.<mesh>.driver" })`.
 4. `fabric_drain({ channel: "mesh.<mesh>.driver" })`.
 5. **Launch missing testers** (skip if Fabric is down or `$ARGUMENTS` has `no-testers`).
-   `fabric_discover`, filter `meta.core == <mesh>`. For each scope in `## Scopes` with no
+   **Default roster is always scopes `a` and `b`** — run `tester-up <mesh> a` and
+   `tester-up <mesh> b` every `/driver`, even when a mission marks one scope idle.
+   `## Scopes` describes what each tester *does*, not whether to start them.
+   `fabric_discover`, filter `meta.core == <mesh>`. For each of **`a` and `b`** with no
    `tester-<mesh>-<scope>-*`, run `~/.agent-mesh/bin/tester-up <mesh> <scope>` (it needs
    `ACTIVE-<mesh>` from Step 1, blocks until it has typed `/tester`, and refuses an existing
    session — don't kill one, use `tester-restart` only if that tester is wedged). Then poll
@@ -214,8 +217,18 @@ reloaded `/tester` with that subscribe, also publish scoped UI work to **`mesh.<
 (broadcast) or the task never arrives — publishing **only** to `.tester.b` with no subscriber
 drops silently. Include `scope` in the payload so the wrong tester can ignore it.
 
-One Playwright MCP on `:8931` for the **whole machine**. Two meshes Playwright-ing at once
-steal tabs. Serialize, or skip Playwright on one mesh. Not a second server in v1.
+One Playwright MCP on `:8931` for the **whole machine** — one Chrome window, many tabs. **Not**
+one tab per tester: each tester must `browser_tabs({ action: "new", url })` as its first
+Playwright call (see 060-playwright-mcp-isolation).
+
+**pr-shots (before + after):** Parallel is fine — publish `playwright` to `mesh.<mesh>.tester.a`
+(staging URL) and `mesh.<mesh>.tester.b` (preview URL) together when both scopes are up. Each
+payload must name its host and require a fresh tab. **Serial is fine** when you want less risk:
+send before, wait for `done`, then send after. Two **meshes** on the machine still cannot
+Playwright at once without tab fights — serialize across meshes, not just scopes.
+
+`done` for pr-shots should include screenshot path, `sha256`, and proof the tab URL matches the
+assigned host (no `/preview/` on before; preview path on after).
 
 ## Step 4 — wait mode (default unless `$ARGUMENTS` contains `no-wait`)
 
