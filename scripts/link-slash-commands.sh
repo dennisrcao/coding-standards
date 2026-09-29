@@ -7,7 +7,7 @@
 #
 #   commands/shared/  -> BOTH agents. One file, cannot drift.
 #   commands/claude/  -> Claude Code only.
-#   commands/cursor/  -> Cursor only. /ask (must name the other agent's binary) and /debate (loops it).
+#   commands/cursor/  -> Cursor only. /ask (must name the other agent's binary), /debate (loops it), /drive (Task subagents).
 #
 # Safe to re-run. A pre-existing real file is backed up next to itself before being replaced,
 # unless it is already byte-identical to the repo copy.
@@ -95,6 +95,7 @@ done
 # out to itself and return its own reasoning as a second opinion, silently.
 link "cursor/ask.md" "$HOME/.cursor/commands/ask.md"
 link "cursor/debate.md" "$HOME/.cursor/commands/debate.md"
+link "cursor/drive.md" "$HOME/.cursor/commands/drive.md"
 
 # Shared skills — these stay skills (they fire on intent), not commands.
 SHARED_SKILLS=(
