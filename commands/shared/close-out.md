@@ -274,6 +274,29 @@ are the source of truth, they move, and this repo does not load them. The mechan
 If the ticket is superseded, duplicated, or dangling rather than done, **delete it** instead of
 archiving it. Do not leave it in the live tree for the next agent to re-read.
 
+### qa-intake + Client project #32 (when the hub ticket cites qa-intake)
+
+QA-vendor intake lives in `your-org/qa-intake`; the workflow auto-adds each issue to org project
+**#32** ("Client Enterprise Customization"). There is usually **no** matching
+`your-org/app#` — do not close a Acme backlog issue unless the hub doc names one.
+
+After the code PR is merged (step 8–9), before or while archiving the hub doc:
+
+1. **Assign and close qa-intake** — `gh issue edit <N> --repo your-org/qa-intake --add-assignee @me`,
+   then `gh issue close <N> --repo your-org/qa-intake` with a short comment: Core PR link, merge
+   SHA, what changed. Use the `work-account` gh account (active `GH_TOKEN` on this machine).
+2. **Mark project #32 Done** — the QA issue's project card must move off Backlog:
+   ```sh
+   gh project item-edit --project-id PVT_kwDOACIdBM4Bcob- \
+     --id <PVTI_… from issue projectItems> \
+     --field-id PVTSSF_lADOACIdBM4Bcob-zhXPxTk \
+     --single-select-option-id 98236657
+   ```
+   Requires token scope **`project`** (`gh auth refresh -s project` once). If the mutation fails, say
+   so in the receipt — the issue can be closed while the board card stays Backlog until a human
+   drags it to Done.
+3. **Then** archive the hub markdown (step 10.4–10.5).
+
 ## Step 11 — The receipt
 
 Keep it scannable. No victory lap.
