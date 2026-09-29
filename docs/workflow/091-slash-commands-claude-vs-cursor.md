@@ -41,7 +41,7 @@ when nothing was in git. Deleting it would still break nothing; deleting `comman
 | `/close-out` | `~/.claude/commands/close-out.md` | `~/.cursor/commands/close-out.md` | **one file** — 303 lines |
 | `/ship` | `~/.claude/commands/ship.md` | `~/.cursor/commands/ship.md` | **one file** — 310 lines |
 | `/pr-description` | `~/.claude/commands/pr-description.md` | `~/.cursor/commands/pr-description.md` | **one file** — 76 lines |
-| `/pr-shots` | `~/.claude/commands/pr-shots.md` | `~/.cursor/commands/pr-shots.md` | **one file** — 364 lines |
+| `/pr-shots` | `~/.claude/commands/pr-shots.md` | `~/.cursor/commands/pr-shots.md` | **one file** — 405 lines |
 | `/ask` | `~/.claude/commands/ask.md` — shells out to `cursor-agent -p --mode ask --trust`. 173 lines. | `~/.cursor/commands/ask.md` — shells out to `claude -p --permission-mode plan`. 50 lines. | **two files, on purpose** |
 | `/debate` | — | `~/.cursor/commands/debate.md` — up to three bounded `claude -p` rounds (no subagents, no MCP, `--max-turns 12`), claims ledger next to the plan, Cursor verifies every claim before recording it. 109 lines. | **Cursor only** |
 | `/docs-update` | `~/.claude/commands/docs-update.md` — 207 lines | — none — | Claude only |
