@@ -1,7 +1,7 @@
 ---
-description: Fabric driver of one workspace mesh. Mesh slug required. Testers on that mesh may debate, implement, and Playwright; you still own the PR merge.
-argument-hint: "<mesh> [wait | no-wait | no-testers | stop]  e.g. /driver core-1 | /driver calendar-1"
-allowed-tools: Bash(git:*), Bash(gh:*), Bash(pnpm:*), Bash(npm:*), Bash(pwd), Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(find:*), Bash(mkdir:*), Bash(date), Bash(tmux:*), Bash(sleep:*), Bash(~/.agent-mesh/bin/tester-up:*), Bash(~/.agent-mesh/bin/tester-restart:*), Read, Grep, Glob, Edit, Write, Shell, mcp__fabric__*, mcp__user-fabric__*
+description: Cursor launcher/driver for one mesh — plan, dispatch, drain tester mail. For wakeable implement/Playwright loops use /driver-up + tmux /driver-next.
+argument-hint: "<mesh> [wait | no-wait | no-testers | investigate | stop]  e.g. /driver core-2 | /driver core-2 wait"
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(pnpm:*), Bash(npm:*), Bash(pwd), Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(find:*), Bash(mkdir:*), Bash(date), Bash(tmux:*), Bash(sleep:*), Bash(osascript:*), Bash(~/.agent-mesh/bin/tester-up:*), Bash(~/.agent-mesh/bin/tester-restart:*), Bash(~/.agent-mesh/bin/mesh-status:*), Bash(~/.agent-mesh/bin/driver-up:*), Read, Grep, Glob, Edit, Write, Shell, mcp__fabric__*, mcp__user-fabric__*
 ---
 
 ## Context (auto-collected)
@@ -10,6 +10,7 @@ allowed-tools: Bash(git:*), Bash(gh:*), Bash(pnpm:*), Bash(npm:*), Bash(pwd), Ba
 - FABRIC_MESH: !`printf '%s\n' "${FABRIC_MESH:-}"`
 - Mesh pointers: !`ls -1 ~/.agent-mesh/missions/ACTIVE-* 2>/dev/null | grep -v '^.*ACTIVE-$' || echo "(none)"`
 - Known meshes: !`~/.agent-mesh/bin/mesh-list 2>/dev/null | tail -n +3 || echo "(run link-slash-commands.sh)"`
+- Driver tmux: !`for m in core-1 core-2 core-3 core-4 calendar-1 calendar-2 calendar-3 portfolio; do tmux has-session -t "driver-$m" 2>/dev/null && echo "driver-$m: running"; done; true`
 - Cwd (not authoritative): !`git rev-parse --show-toplevel 2>/dev/null || pwd`
 
 `$ARGUMENTS`
@@ -25,12 +26,27 @@ they must not share `cursor`, a global `ACTIVE`, or `role.*`.
 
 **Do not run `/close-out` or merge** from inside `/driver`.
 
+## Hybrid — Cursor vs tmux driver
+
+Cursor Fabric is **pull mode**: tester `done` is buffered until **you** start another turn here.
+It does **not** auto-wake this chat.
+
+| Goal | What Dennis runs | Who drives |
+|---|---|---|
+| Mission file, plan, one-shot dispatch, `/argue` | **`/driver <mesh>`** in Cursor (this command) | Cursor agent |
+| Doc / investigation only (no testers) | **`/driver <mesh> investigate`** (alias `no-testers`) | Cursor agent |
+| Implement, Playwright, retest — **replies should wake the driver** | **`/driver-up <mesh>`** in Terminal (or **`/driver-up`** in Cursor), then **`tmux attach -t driver-<mesh>`** | tmux runs **`/driver-next <mesh>`** (wakeable) |
+
+After **`/driver-up`**, do **not** keep driving the same mesh from Cursor unless you only need to
+drain mail (`/driver <mesh>` once). Attach the tmux driver for the back-and-forth.
+
 ## Resolve mesh (do this first)
 
 First match wins:
 
 1. `$ARGUMENTS` contains a mesh slug (`core-1`, `calendar-1`, `claw-calendar`, `sigma`, `stop`
-   plus a mesh, …). Run `mesh-list` when unsure.
+   plus a mesh, …). Flags: `wait`, `no-wait`, `no-testers`, **`investigate`** (same as
+   `no-testers`), `stop`. Run `mesh-list` when unsure.
 2. Else `FABRIC_MESH` from `mesh-cursor` / the environment.
 3. **Else stop and ask.** Do not fall back to focused folder, cwd, or a single `ACTIVE`.
    `/driver` with no mesh is illegal when two meshes can be live.
@@ -82,7 +98,13 @@ does not move. Testers on `calendar-2` never wake for `calendar-1` traffic.
 - **No `fabric_request` in mesh work.** Publish, end the turn, drain `mesh.<mesh>.driver` on
   the next `/driver`.
 - **No headless `claude -p` as a stand-in for a tester.**
-- **Drain first, every turn.** `fabric_drain({ channel: "mesh.<mesh>.driver" })`.
+- **Drain first, every turn.** `fabric_drain({ channel: "mesh.<mesh>.driver" })`. **Report the
+  count at the top of your reply** (`Driver drain: N message(s) on mesh.<mesh>.driver`). If
+  `N > 0` on macOS, also run:
+  `osascript -e 'display notification "N tester message(s)" with title "Mesh <mesh> driver"'`
+  (replace `N` and `<mesh>`). That nudges Dennis; it still does not start a new agent turn.
+- **After drain**, run `~/.agent-mesh/bin/mesh-status <mesh>` when any tester was involved in
+  this mission (stall checks, roster sanity).
 - **Port 0** (e.g. `producer-pal`) — code-only mesh; skip Playwright unless the mission names a URL.
 - **`fabric_discover`:** filter by `meta.core`. Ignore other meshes' testers.
 - **Delegation is optional.** You may still implement yourself. `implement` is not a replacement
@@ -133,7 +155,8 @@ If `$ARGUMENTS` is `stop` (with the mesh already resolved), skip to **/driver st
 2. `fabric_setPresence({ visible: true, meta: { role: "driver", core: mesh, branch, checkout, port, status: "busy" } })`.
 3. `fabric_subscribe({ channel: "mesh.<mesh>.driver" })`.
 4. `fabric_drain({ channel: "mesh.<mesh>.driver" })`.
-5. **Launch missing testers** (skip if Fabric is down or `$ARGUMENTS` has `no-testers`).
+5. **Launch missing testers** (skip if Fabric is down or `$ARGUMENTS` has `no-testers` or
+   **`investigate`**).
    **Default roster is always scopes `a` and `b`** — run `tester-up <mesh> a` and
    `tester-up <mesh> b` every `/driver`, even when a mission marks one scope idle.
    `## Scopes` describes what each tester *does*, not whether to start them.
@@ -232,13 +255,18 @@ assigned host (no `/preview/` on before; preview path on after).
 
 ## Step 4 — wait mode (default unless `$ARGUMENTS` contains `no-wait`)
 
+Use **`wait`** when you just published `playwright`, `implement`, or `retest` and need tester
+replies **in this turn**. Do **not** use open-ended wait after plan-only work — end the turn and
+let Dennis run `/driver <mesh>` again or use **`/driver-up`** for long loops.
+
 - `fabric_wait({ channel: "mesh.<mesh>.driver", timeout_ms: 55000 })` in a loop.
 - Stop after **5** consecutive empty waits or when testers publish `done` / `implement-done`
   for the current sha.
 - Cursor's Fabric server is pull mode and cannot be woken. A late reply sits until the next
-  drain. Say so ("waiting on tester-calendar-1-a; run `/driver calendar-1` to pick it up").
+  drain. Say so ("waiting on tester-calendar-1-a; run `/driver calendar-1` to pick it up, or
+  **`tmux attach -t driver-calendar-1`** if you started **`/driver-up`**").
 
-`fabric_wait` is **only** allowed inside `/driver` wait mode.
+`fabric_wait` is **only** allowed inside `/driver` **wait** mode (not on every Cursor turn).
 
 ## Step 5 — report
 

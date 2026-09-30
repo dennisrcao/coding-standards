@@ -89,6 +89,8 @@ done
 for f in ask docs-update update-markdown explain tester-up driver-up; do
   link "claude/$f.md" "$HOME/.claude/commands/$f.md"
 done
+link "shared/driver.next.md" "$HOME/.claude/commands/driver-next.md"
+link "shared/tester.next.md" "$HOME/.claude/commands/tester-next.md"
 
 # Cursor only — /ask cannot be shared: each side must name the OTHER agent's
 # binary. Merged into one file, an agent that misidentifies itself would shell
@@ -96,6 +98,7 @@ done
 link "cursor/ask.md" "$HOME/.cursor/commands/ask.md"
 link "cursor/debate.md" "$HOME/.cursor/commands/debate.md"
 link "cursor/drive.md" "$HOME/.cursor/commands/drive.md"
+link "cursor/driver-up.md" "$HOME/.cursor/commands/driver-up.md"
 
 # Shared skills — these stay skills (they fire on intent), not commands.
 SHARED_SKILLS=(
