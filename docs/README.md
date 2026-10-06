@@ -26,13 +26,11 @@ repo, rewrite globs, then record what landed in
 | `agent-job-pipeline` | + 120, 130, 140 | Invoke-once jobs — **not** 125 |
 | `drag-and-drop` | 027 | Add when the repo has *positional* drag (coordinates → a value). Needs 026 |
 | `quality-gate` | 050 | Add when Fallow / changed-code CI exists |
-| `operator-machine` | *(reference only)* 060, 070, 090, 091 | Machine setup — not `.mdc` rules |
 
 Rule IDs are the filename prefix (`020` → `docs/frontend/020-zustand.md`). **Exception — `030`:**
 the full write-up is `docs/tooling/030-lint-format-quality.md`; copy
 `rules/030-formatting.mdc` whole into the target repo (not a rename of
-the `.md`). Workflow docs and `150` are **reference-only** — read from the hub, do not copy to
-`.cursor/rules/`.
+the `.md`). `150` is **reference-only** — read it here, do not copy it to `.cursor/rules/`.
 
 ## General
 
@@ -66,14 +64,11 @@ the `.md`). Workflow docs and `150` are **reference-only** — read from the hub
 | [030-lint-format-quality.md](tooling/030-lint-format-quality.md) | ESLint + @stylistic, pack-don't-stack, Fallow |
 | [050-anti-slop.md](tooling/050-anti-slop.md) | Fallow anti-slop / PR gate |
 
-## Workflow (operator / agent machine)
+## Workflow
 
-| Doc | Topic |
-|---|---|
-| [060-playwright-mcp-isolation.md](workflow/060-playwright-mcp-isolation.md) | Shared Playwright MCP |
-| [070-tmux-shared-dev-server.md](workflow/070-tmux-shared-dev-server.md) | tmux dev servers |
-| [090-slash-commands.md](workflow/090-slash-commands.md) | Slash command roster |
-| [091-slash-commands-claude-vs-cursor.md](workflow/091-slash-commands-claude-vs-cursor.md) | Claude vs Cursor commands |
+Not standards. How I run these day to day with Claude Code and Cursor — slash commands, shared
+Playwright MCP, tmux dev servers — lives in [`../examples/agent-workflow/`](../examples/agent-workflow/README.md)
+as a worked example.
 
 ## LLM / agents
 
@@ -89,4 +84,4 @@ Read [`101-llm-adoption-order.md`](llm/101-llm-adoption-order.md) first — not 
 | [125-agent-harness-extension.md](llm/125-agent-harness-extension.md) | Agent harness extension |
 | [130-agent-job-contracts.md](llm/130-agent-job-contracts.md) | Job contracts |
 | [140-llm-evals.md](llm/140-llm-evals.md) | Evals |
-| [150-claude-skill-builder-guide.md](llm/150-claude-skill-builder-guide.md) | Skill builder reference *(not adoptable)* |
+| [150-claude-skill-builder-guide.md](llm/150-claude-skill-builder-guide.md) | Skill-authoring notes *(not adoptable)* |

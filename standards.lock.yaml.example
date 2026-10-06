@@ -33,7 +33,3 @@ exceptions:
     reason: "persist allowed for debugPanelVisible only"
   - id: "025"
     reason: "Scoped invalidation via meta.invalidates — global default caused list refetch storms on high-traffic keys"
-
-reference:
-  - id: "060"
-    note: "Shared Playwright MCP — operator doc, not copied to .mdc"

@@ -100,7 +100,7 @@ into atomic falsifiable claims, verdicts each one against the real code with `fi
 and edits the plan only for what survived. That verification used to be a second command,
 `/CROSSCHECK`; it is now inlined in both halves of the pair, because a critique that arrives
 without it reads as authoritative and is frequently wrong about the codebase — see
-[050-anti-slop.md](../tooling/050-anti-slop.md).
+[050-anti-slop.md](../../../docs/tooling/050-anti-slop.md).
 
 ## How each agent loads them
 

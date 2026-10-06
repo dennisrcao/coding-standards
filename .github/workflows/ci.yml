@@ -21,5 +21,5 @@ jobs:
         run: npm test
       - name: Scripts parse
         run: |
-          bash -n scripts/link-slash-commands.sh scripts/gh-stack-alias.sh
-          python3 -m py_compile scripts/build-slash-command-doc.py
+          bash -n examples/agent-workflow/scripts/link-slash-commands.sh examples/agent-workflow/scripts/gh-stack-alias.sh
+          python3 -m py_compile examples/agent-workflow/scripts/build-slash-command-doc.py

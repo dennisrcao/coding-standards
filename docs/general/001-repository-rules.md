@@ -24,8 +24,6 @@ predictable from its name alone, no matter whether it's a file or a folder.
 }
 ```
 
-That's exactly what `dian-nao/.vscode/settings.json` contains — copy it into any new repo.
-
 ### How to apply
 
 - **Per repo (preferred):** create `.vscode/settings.json` with the snippet above and

@@ -75,26 +75,6 @@ rules:
     adoptable: true
     summary: Fallow anti-slop / changed-code gate
 
-  "060":
-    path: workflow/060-playwright-mcp-isolation.md
-    adoptable: false
-    summary: Shared Playwright MCP (machine operator setup)
-
-  "070":
-    path: workflow/070-tmux-shared-dev-server.md
-    adoptable: false
-    summary: tmux shared dev servers (machine operator setup)
-
-  "090":
-    path: workflow/090-slash-commands.md
-    adoptable: false
-    summary: Slash command roster and authoring
-
-  "091":
-    path: workflow/091-slash-commands-claude-vs-cursor.md
-    adoptable: false
-    summary: Claude vs Cursor command parity (generated)
-
   "100":
     path: llm/100-llm-call-pathway.md
     adoptable: true
@@ -138,7 +118,7 @@ rules:
   "150":
     path: llm/150-claude-skill-builder-guide.md
     adoptable: false
-    summary: Anthropic skill-builder reference (read in hub; not an .mdc rule)
+    summary: Skill-authoring notes (reference; not an .mdc rule)
 
 profiles:
   baseline:
@@ -197,7 +177,3 @@ profiles:
   quality-gate:
     description: Add when the repo runs Fallow or an equivalent changed-code audit in CI
     adopt: ["050"]
-
-  operator-machine:
-    description: Personal dev machine — Playwright MCP, tmux, slash commands (hub reference only)
-    reference: ["060", "070", "090", "091"]

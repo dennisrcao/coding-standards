@@ -86,7 +86,7 @@ atomic falsifiable claims, verdicts each against the real code with `file:line` 
 the plan only for what survived. That verification was its own command, `/CROSSCHECK`, until
 2026-09-02; it is now inlined in both halves of `/ask`, because an LLM critique reads as
 authoritative and is frequently wrong about the codebase — see
-[`050-anti-slop.md`](../tooling/050-anti-slop.md).
+[`050-anti-slop.md`](../../../docs/tooling/050-anti-slop.md).
 
 ## `/argue` vs `/ask` vs `/debate`
 

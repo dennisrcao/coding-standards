@@ -114,30 +114,6 @@ for s in "${SHARED_SKILLS[@]}"; do
   link "shared/$s/SKILL.md" "$HOME/.cursor/skills/$s/SKILL.md"
 done
 
-# Per-core mesh Fabric rule (Cursor alwaysApply). Source of truth is the hub copy.
-FABRIC_MDC_SRC="$(cd "$REPO/../agent-mesh/config/cursor" && pwd)/fabric.mdc"
-FABRIC_MDC_DST="$HOME/.cursor/rules/fabric.mdc"
-if [ -f "$FABRIC_MDC_SRC" ]; then
-  mkdir -p "$(dirname "$FABRIC_MDC_DST")"
-  if [ -L "$FABRIC_MDC_DST" ] && [ "$(readlink "$FABRIC_MDC_DST")" = "$FABRIC_MDC_SRC" ]; then
-    skipped=$((skipped + 1))
-  else
-    if [ -f "$FABRIC_MDC_DST" ] && [ ! -L "$FABRIC_MDC_DST" ]; then
-      if ! cmp -s "$FABRIC_MDC_DST" "$FABRIC_MDC_SRC"; then
-        mv "$FABRIC_MDC_DST" "$FABRIC_MDC_DST.local-$STAMP"
-        echo "  BACKED UP (differs from repo): $FABRIC_MDC_DST.local-$STAMP"
-        backed_up=$((backed_up + 1))
-      else
-        rm -f "$FABRIC_MDC_DST"
-      fi
-    else
-      rm -f "$FABRIC_MDC_DST"
-    fi
-    ln -s "$FABRIC_MDC_SRC" "$FABRIC_MDC_DST"
-    linked=$((linked + 1))
-  fi
-fi
-
 # gh stack wrapper — origin on github-work needs an https://github.com remote for submit/sync
 GH_STACK_SRC="$(cd "$REPO/scripts" && pwd)/gh-stack-alias.sh"
 GH_STACK_DST="$HOME/.local/bin/gh-stack-alias"

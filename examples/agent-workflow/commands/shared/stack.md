@@ -38,7 +38,7 @@ instead of one megacommit. For a **single** PR, use `/close-out` instead.
 ## Wrapper (always use this)
 
 ```bash
-# On PATH after: ln -sf ~/coding-standards/scripts/gh-stack-alias.sh ~/.local/bin/gh-stack-alias
+# On PATH after: ln -sf ~/coding-standards/examples/agent-workflow/scripts/gh-stack-alias.sh ~/.local/bin/gh-stack-alias
 gh-stack-alias <subcommand> [args]
 ```
 
