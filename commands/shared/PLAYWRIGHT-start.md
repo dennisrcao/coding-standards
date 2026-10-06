@@ -162,7 +162,7 @@ Cookies are still separated by origin, and every checkout serves on a distinct
 port, so logins do not bleed between repos.
 
 Full rationale, with the source excerpts:
-`docs-hub/projects/coding-standards/docs/workflow/060-playwright-mcp-isolation.md`.
+`docs/workflow/060-playwright-mcp-isolation.md`.
 
 ## Cross-window observability
 

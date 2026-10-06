@@ -12,10 +12,10 @@ alwaysApply: false
 These are **not** repo commands. They are reachable from `~/.claude/commands/*.md` on each machine,
 so they are available in **every** repo — that is the whole point of them.
 
-**They are tracked here.** The real files live in `projects/coding-standards/commands/`, split by
+**They are tracked here.** The real files live in `commands/`, split by
 which agent gets them — `shared/` (both), `claude/` (Claude Code only), `cursor/` (Cursor only).
 `~/.claude/commands/` is symlinks into those folders, so a wiped machine is restored by cloning
-`docs-hub` to the Desktop and running `bash projects/coding-standards/scripts/link-slash-commands.sh`.
+`docs-hub` to the Desktop and running `bash scripts/link-slash-commands.sh`.
 Writing a command *is* committing it; there is no separate backup step.
 
 A file named `foo.md` in that folder becomes `/foo`. Claude Code also surfaces it in the skills
@@ -40,7 +40,7 @@ view, what Cursor ignores in a shared file, and the bar a command has to clear t
   paragraph does more work than the step list — it tells the model what "done badly" looks like.
 - **Write it in `commands/shared/` and symlink it**, so it is committed the moment it exists and
   both agents get it. Drop to `commands/claude/` only when the command genuinely cannot work in
-  Cursor. Then `python3 projects/coding-standards/scripts/build-slash-command-doc.py` refreshes
+  Cursor. Then `python3 scripts/build-slash-command-doc.py` refreshes
   `091`'s copies.
 - **Resolve, don't assume — the base branch especially.** `git symbolic-ref refs/remotes/origin/HEAD`
   gives `staging` on app-monorepo and `main` nearly everywhere else. A command that hardcodes one is

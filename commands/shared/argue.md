@@ -20,7 +20,7 @@ allowed-tools: Bash(git:*), Bash(gh:*), Bash(pwd), Bash(ls:*), Bash(cat:*), Bash
 
 You are the **driver**. Run the bounded plan-debate loop on **one** mesh until
 testers `agree` or max rounds exhaust. Protocol:
-`projects/coding-standards/commands/shared/argue-protocol.md` (read it).
+`commands/shared/argue-protocol.md` (read it).
 
 **Not** `/debate` (headless `claude -p`). **Not** `/ask` (one volley to the other
 agent's binary). **Not** a substitute for `/driver` implementation work — only

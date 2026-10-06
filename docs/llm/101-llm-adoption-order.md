@@ -236,7 +236,7 @@ done
 
 Adoption order: `101`. Not every rule in these files is in force yet — `101` says which,
 and names the event that makes each of the rest binding. Canonical copies live in
-`docs-hub/projects/coding-standards/docs/` (see [`README.md`](../README.md) for folders).
+`docs/` (see [`README.md`](../README.md) for folders).
 ```
 
 The last paragraph is the load-bearing part. Without it the next reader finds five rule files, sees

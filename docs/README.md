@@ -30,7 +30,7 @@ repo, rewrite globs, then record what landed in
 
 Rule IDs are the filename prefix (`020` → `docs/frontend/020-zustand.md`). **Exception — `030`:**
 the full write-up is `docs/tooling/030-lint-format-quality.md`; copy
-`docs-hub/.cursor/rules/030-formatting.mdc` whole into the target repo (not a rename of
+`rules/030-formatting.mdc` whole into the target repo (not a rename of
 the `.md`). Workflow docs and `150` are **reference-only** — read from the hub, do not copy to
 `.cursor/rules/`.
 

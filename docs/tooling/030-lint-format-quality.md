@@ -285,12 +285,12 @@ the packing rule covers imports alone, so on a repo with multi-line barrel files
 `export {useFoo,` … `type Bar,}`, and it cannot touch comment-interleaved export blocks at all.
 
 **Enforcement (imports only):** custom ESLint rule at
-`projects/coding-standards/eslint-rules/packed-named-imports.mjs`. Copy that file into the
+`eslint-rules/packed-named-imports.mjs`. Copy that file into the
 consuming repo's `eslint-rules/` and wire it as in the config above.
 
 **Hook deps and parameter lists are not linted** — the rule covers `ImportDeclaration` only.
 They are a **review-level and agent-level** expectation, carried by
-`docs-hub/.cursor/rules/030-formatting.mdc` (copy whole into the target repo). A clean
+`rules/030-formatting.mdc` (copy whole into the target repo). A clean
 `eslint` run says nothing about them; a scoped rule that plugs only the import hole is exactly
 how one-per-line leaks back into deps and params.
 
@@ -322,26 +322,26 @@ Rule **`030` ships two hub files** — do not convert one into the other:
 
 | Hub file | Role in target repo |
 |---|---|
-| `projects/coding-standards/docs/tooling/030-lint-format-quality.md` | Full standard (ESLint stack + Fallow). Reference only unless you also copy Fallow setup. |
-| `docs-hub/.cursor/rules/030-formatting.mdc` | **Copy whole** → `<repo>/.cursor/rules/030-formatting.mdc`. Pack-don't-stack for agents; rewrite `globs`. |
+| `docs/tooling/030-lint-format-quality.md` | Full standard (ESLint stack + Fallow). Reference only unless you also copy Fallow setup. |
+| `rules/030-formatting.mdc` | **Copy whole** → `<repo>/.cursor/rules/030-formatting.mdc`. Pack-don't-stack for agents; rewrite `globs`. |
 
-1. Copy `projects/coding-standards/eslint-rules/packed-named-imports.mjs` into the target
+1. Copy `eslint-rules/packed-named-imports.mjs` into the target
    repo's `eslint-rules/`. Copy the file — do not retype it.
 2. Register it in `eslint.config.mjs` for the TS/TSX trees you care about, at
    `maxLineLength: 150`.
-3. Copy `docs-hub/.cursor/rules/030-formatting.mdc` into the target repo **whole** —
+3. Copy `rules/030-formatting.mdc` into the target repo **whole** —
    rewrite `globs` for that repo's layout, but **do not trim** the hook-deps or parameter-list
    sections. ESLint covers imports only; those sections are what keeps agents from writing
    Prettier-style signatures. Optionally `@`-import it from `CLAUDE.md`.
 4. Run `npx eslint .` once before committing. The rule reports only one-name-per-line imports,
    so a clean repo should stay clean; anything it does flag is real.
 
-**Changing the rule:** edit the canonical file under `projects/coding-standards/eslint-rules/`,
+**Changing the rule:** edit the canonical file under `eslint-rules/`,
 then re-run its fixtures from any checkout that has `eslint` and `@typescript-eslint/parser`
 installed, and re-copy downstream:
 
 ```sh
-node projects/coding-standards/eslint-rules/packed-named-imports.test.mjs
+node eslint-rules/packed-named-imports.test.mjs
 ```
 
 ---

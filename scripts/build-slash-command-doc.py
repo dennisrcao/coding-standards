@@ -3,8 +3,7 @@
 import pathlib
 
 HOME = pathlib.Path.home()
-OUT = pathlib.Path('~/coding-standards/docs'
-                   '/workflow/091-slash-commands-claude-vs-cursor.md')
+OUT = pathlib.Path(__file__).resolve().parent.parent / 'docs/workflow/091-slash-commands-claude-vs-cursor.md'
 
 # Shared commands are read from the Claude side; the Cursor path is the same file
 # via symlink, so reading either gives identical bytes.
@@ -48,7 +47,7 @@ that exists on both sides is now literally one file**, symlinked into both agent
 deliberate exception, `/ask`, which cannot be shared because each side has to name the *other*
 agent's binary.
 
-**The files themselves live in this repo**, under `projects/coding-standards/commands/`:
+**The files themselves live in this repo**, under `commands/`:
 
 | Folder | Goes to |
 |---|---|
@@ -61,7 +60,7 @@ command from either agent edits the tracked file, and `git pull` carries it to e
 machine is restored by cloning `docs-hub` to the Desktop and running:
 
 ```sh
-bash projects/coding-standards/scripts/link-slash-commands.sh
+bash scripts/link-slash-commands.sh
 ```
 
 That makes **this page a generated view, not the backup** — it used to be the restore path, back
@@ -215,8 +214,8 @@ Nothing regenerates this page on its own. Edit a command and the blocks above go
 so regenerate rather than hand-patching a block:
 
 ```sh
-python3 projects/coding-standards/scripts/build-slash-command-doc.py   # re-reads the live files, rewrites this doc
-bash    projects/coding-standards/scripts/link-slash-commands.sh       # re-point a machine at the repo (idempotent)
+python3 scripts/build-slash-command-doc.py   # re-reads the live files, rewrites this doc
+bash    scripts/link-slash-commands.sh       # re-point a machine at the repo (idempotent)
 ls -l ~/.claude/commands/ ~/.claude/skills/ ~/.cursor/commands/ ~/.cursor/skills/
 ```
 

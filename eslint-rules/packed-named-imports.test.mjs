@@ -5,8 +5,8 @@
  * and `@typescript-eslint/parser` are resolved from the CURRENT WORKING
  * DIRECTORY. Run it from any repo that has both installed:
  *
- *   cd ~/Desktop/studio
- *   node ~/coding-standards/eslint-rules/packed-named-imports.test.mjs
+ *   cd <your-repo>
+ *   node <coding-standards>/eslint-rules/packed-named-imports.test.mjs
  *
  * Exits non-zero on failure.
  */

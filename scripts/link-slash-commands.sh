@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Point this machine's Claude Code and Cursor at the slash commands tracked in this repo.
 #
-# The files under projects/coding-standards/commands/ are the source of truth. This script
+# The files under commands/ are the source of truth. This script
 # replaces ~/.claude/commands/* and ~/.cursor/{commands,skills}/* with symlinks into them,
 # so editing a command in either agent edits the tracked file and `git pull` syncs every Mac.
 #

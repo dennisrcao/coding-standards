@@ -8,7 +8,7 @@
 
 version: 1
 
-hub: docs-hub/projects/coding-standards
+hub: 
 hub_commit: "<sha-at-adoption>"
 profile: react-spa # profile from standards-adoption.yaml, or null if hand-picked
 
@@ -21,7 +21,7 @@ adopted:
     mdc: .cursor/rules/020-zustand.mdc
   # Rule 030 is two hub files — record both. The .mdc name is intentional (not 030-lint-format-quality.mdc).
   - id: "030"
-    hub_doc: projects/coding-standards/docs/tooling/030-lint-format-quality.md
+    hub_doc: docs/tooling/030-lint-format-quality.md
     mdc: .cursor/rules/030-formatting.mdc
 
 skip:

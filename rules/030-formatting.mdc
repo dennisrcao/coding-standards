@@ -1,0 +1,135 @@
+---
+description: Line length and packed identifier lists — no gratuitous one-per-line for imports, hook deps, parameters, or destructuring
+globs:
+  - "**/*.{ts,tsx,mjs,js}"
+alwaysApply: false
+---
+
+# Formatting (TS/JS)
+
+**Agent check (every new/edited signature, dep array, destructure, or import):** one line when it
+fits 150 chars; when wrapping, **pack** multiple names per line. **Never** one name per line. ESLint
+autofixes imports only — params, deps and destructures are on you.
+
+## Max line length
+
+- **150 characters, every repo.** One number — there is no per-repo ceiling any more.
+- Enforce with `@stylistic/max-len` when the repo has ESLint wired.
+
+## Pack, don't stack — one rule, four places
+
+Applies to **named imports**, **hook dependency arrays**, **function / component parameter lists**, and **destructuring assignments** (`const { … } = useThing()`):
+
+- Keep the list on **one line** when it fits the 150-char budget. This is the common case.
+- When wrapping is required, **fill each line** with as many entries as fit — **do not** put one entry per line (Prettier-style).
+- Your untrained default is Prettier-at-80, so you will drift to one-per-line in all four unless you check. Check.
+- After a repo adopts import lint, **params, hook deps and destructures are where one-per-line leaks back** — nothing autofixes them.
+
+**Exception — JSX props stay one per line.** A JSX attribute is a `name={expression}` pair, often a multi-line arrow; packing those reads worse. This rule is about *identifier lists*, not JSX. Interface/type members also keep one per line.
+
+### Named imports
+
+- Wrap in the **brace-newline form**: `{` ends the `import` line, names follow packed on 2-space-indented lines, `} from "…";` closes on its own line.
+- **Keep the trailing comma** — the closing brace is on its own line.
+- Where names have a natural grouping, give each group its own line. That is why this form wins.
+
+```ts
+// GOOD — single line when it fits
+import { useCallback, useEffect, useMemo, useRef } from "react";
+
+// GOOD — brace-newline, packed, grouped by meaning
+import {
+  Background, BackgroundVariant, MarkerType, ReactFlow,
+  useEdgesState, useNodesState, type Edge, type Node,
+} from "@xyflow/react";
+
+// BAD — the only form the rule flags
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
+```
+
+### Hook dependency arrays
+
+```ts
+// GOOD — one line
+}, [showSidePanel, mood, analyzing, imageCount, uploading, projectId]);
+
+// GOOD — wrapped and packed when 20 deps will not fit in 150 chars
+}, [
+  showSidePanel, mood, analyzing, imageCount, uploading, projectId, savingBrief, briefSaved,
+  fragments, savedPrompts, activeSessionId, handleAddPromptToShotlist, handleDeletePrompt,
+]);
+
+// BAD — one dependency per line
+}, [
+  showSidePanel,
+  mood,
+  analyzing,
+]);
+```
+
+A dep array needing three packed lines is a **design signal** — the memo is probably doing several jobs and wants splitting.
+
+### Function & component parameter lists
+
+```ts
+// GOOD — fits on one line, so it stays there
+function ImagesPage({ projectId, onBack, onSelectProducts, onNeedProject, returnToShotlist = false }: ImagesPageProps) {
+
+// GOOD — wrapped and packed, trailing comma kept
+const AddNodeButton = ({
+  disabled, i, nodeType, nodeDisplayName, onNodeCreateClick, tileId, onActivate,
+}: IAddNodeButtonProps) => {
+
+// GOOD — many destructured props (15+), still packed — not one name per line
+export function ConsoleButton({
+  label, subLabel, variant = "idle", className, onClick, sfx, fieldView, fieldCamera,
+  borderOuter, borderInner, showBackground = true, showBorderOuter = true, showBorderInner = true,
+  behavior, pinBorderInner = false, pinBorderOuter = false,
+}: ConsoleButtonProps) {
+
+// BAD — one parameter per line (Prettier default; what you write unprompted)
+function ImagesPage({
+  projectId,
+  onBack,
+  onSelectProducts,
+}: ImagesPageProps) {
+```
+
+- **Do not add `@stylistic/object-curly-newline`.** With `ImportDeclaration: 'never'` it forbids
+  the break straight after `{` — which is exactly the form above — so it would make the house
+  style unlintable. It was removed from the standard deliberately.
+
+### Destructuring assignments
+
+A `const { … } = useSomething()` is an identifier list like any other. It is the position this
+rule missed longest, because it reads as *calling a hook* rather than as a list — but the shape
+on the page is identical to a parameter list, and so is the fix.
+
+```ts
+// GOOD — one line when it fits
+const { data, isLoading, isError, error } = useAccountSummary();
+
+// GOOD — wrapped and packed when the names will not fit 150 chars
+const {
+  accounts, spentToday, spentThisMonth, discretionaryThisMonth,
+  discretionaryBudget, isLoading, isError, error,
+} = useAccountSummary();
+
+// BAD — one name per line (Prettier default; what you write unprompted)
+const {
+  accounts,
+  spentToday,
+  spentThisMonth,
+} = useAccountSummary();
+```
+
+**Enforcement:** the ESLint rule covers **imports only**. Copy
+`projects/coding-standards/eslint-rules/packed-named-imports.mjs` from the hub into the
+consuming repo's `eslint-rules/` and wire it at `maxLineLength: 150`. **Hook deps, parameter
+lists and destructuring assignments are not linted** — they are on you and on review. A clean
+`eslint` run proves nothing about them.

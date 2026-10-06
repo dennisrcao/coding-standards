@@ -8,7 +8,7 @@ then travels — adapted — into whichever repo needs it.
 
 ## Single source of truth
 
-`projects/coding-standards/docs/<category>/<NNN>-<slug>.md` is the **only** canonical copy of a
+`docs/<category>/<NNN>-<slug>.md` is the **only** canonical copy of a
 standard. Categories on disk:
 
 | Folder | Prefix band |
@@ -59,11 +59,11 @@ is the frontmatter of the file this doc becomes.
    needs `src/…`. A rule whose globs don't match is a rule that never fires.
 5. **Rule `030` — two hub files, one target `.mdc`:**
    - **Reference / Fallow setup:** `docs/tooling/030-lint-format-quality.md` (this library).
-   - **Copy to target repo:** `docs-hub/.cursor/rules/030-formatting.mdc` →
+   - **Copy to target repo:** `rules/030-formatting.mdc` →
      `<repo>/.cursor/rules/030-formatting.mdc` **whole**. Do not rename the `.md` or trim the
      hook-deps and parameter-list sections — ESLint only lints imports; the `.mdc` carries the
      rest for agents.
-   - Also copy `projects/coding-standards/eslint-rules/packed-named-imports.mjs` into the target
+   - Also copy `eslint-rules/packed-named-imports.mjs` into the target
      repo and wire it in `eslint.config.mjs`.
 6. Trim other rules to what that repo needs — a downstream copy may be a narrow extract, not the
    whole doc.
