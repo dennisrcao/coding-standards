@@ -24,6 +24,18 @@ it gets argued with instead of followed.
 `.mdc` copy needs, that every relative link resolves, and runs the fixtures for the one custom
 ESLint rule the standards depend on. CI runs the same three.
 
+## Origins
+
+These started as a few lines of personal preferences in a Cursor rules file in June 2025
+([`d05ef07`](https://github.com/dennisrcao/coding-standards/commit/d05ef07)). In April 2026 they
+became the first portable rules: FastAPI, SCSS modules and Zustand
+([`4686cc6`](https://github.com/dennisrcao/coding-standards/commit/4686cc6)). From June 2026
+they grew into this library inside my docs hub, while I applied them across several
+production codebases: a React/NestJS monorepo with Python LLM agents, a personal dashboard, and
+a portfolio site. Most rules here exist because one of those codebases needed them. In
+October 2026 the library moved out of the hub into this repo, with its history and with names
+specific to those codebases replaced by generic ones.
+
 ## Single source of truth
 
 `docs/<category>/<NNN>-<slug>.md` is the **only** canonical copy of a
