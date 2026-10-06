@@ -22,7 +22,7 @@ Use /tdd where possible, at pre-agreed seams (per-app seams are in the root
 `CLAUDE.md`; read the app's own `AGENTS.md`/`CLAUDE.md` before touching it).
 
 **Code comments** follow the repo-wide rule in
-[`.cursor/rules/005-code-comments.mdc`](../../../.cursor/rules/005-code-comments.mdc)
+`.cursor/rules/005-code-comments.mdc` (in the target repo)
 (imported by the root `CLAUDE.md`): one or two lines, addressed to the next
 reader of the code, never a narration of the change — that story is the commit
 message and the PR description.

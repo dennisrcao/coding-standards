@@ -1,7 +1,7 @@
 /**
  * Fixtures for the canonical `packed-named-imports` rule.
  *
- * There is no test runner in this docs repo, and no node_modules — so `eslint`
+ * `npm test` from this repo runs it against the pinned devDependencies. Otherwise `eslint`
  * and `@typescript-eslint/parser` are resolved from the CURRENT WORKING
  * DIRECTORY. Run it from any repo that has both installed:
  *

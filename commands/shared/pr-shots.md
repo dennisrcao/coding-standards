@@ -139,7 +139,7 @@ When auth blocks, stop and ask the human to sign in in the Playwright Chrome win
 **Shared browser — one window, many tabs (mesh / dual-host pr-shots):** One headed Chrome on
 `:8931` serves every MCP **client** on the machine — not one tab per tester unless each tester
 claims one
-([060-playwright-mcp-isolation.md](../docs/workflow/060-playwright-mcp-isolation.md)). Each
+([060-playwright-mcp-isolation.md](../../docs/workflow/060-playwright-mcp-isolation.md)). Each
 client's **first** Playwright call must be `browser_tabs({ action: "new", url })`, never bare
 `browser_navigate`. A second client that navigates first inherits the first client's tab and
 invalidates before/after.

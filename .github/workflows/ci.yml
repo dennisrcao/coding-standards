@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Standards carry their frontmatter, links resolve
+        run: npm run check
+      - name: packed-named-imports rule fixtures
+        run: npm test
+      - name: Scripts parse
+        run: |
+          bash -n scripts/link-slash-commands.sh scripts/gh-stack-alias.sh
+          python3 -m py_compile scripts/build-slash-command-doc.py

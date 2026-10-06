@@ -15,7 +15,7 @@ layers, both runnable locally and in CI:
 1. **ESLint (flat config) + `@stylistic`** — per-file lint **and** formatting. **No Prettier.**
 2. **Fallow** — repo-level quality: dead code, duplication, complexity, dependency hygiene, PR-risk gate.
 
-Python is the mirror image: **Ruff** does lint **and** format (see [`005-fastapi-python`](005-fastapi-python.md)). The principle is the same on both sides — **one tool owns both lint and format**, no second formatter.
+Python is the mirror image: **Ruff** does lint **and** format (see [`005-fastapi-python`](../backend/005-fastapi-python.md)). The principle is the same on both sides — **one tool owns both lint and format**, no second formatter.
 
 ---
 

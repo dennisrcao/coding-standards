@@ -9,7 +9,7 @@ alwaysApply: false
 **Status:** reference. Companion to
 [091-slash-commands-claude-vs-cursor.md](091-slash-commands-claude-vs-cursor.md)
 (many clones, one clone per folder) and the standing protocol
-[`driver-and-testers-on-fabric.md`](../../../agent-mesh/docs/development/driver-and-testers-on-fabric.md).
+`driver-and-testers-on-fabric.md` (a separate repo).
 
 ## The setup this machine actually runs
 

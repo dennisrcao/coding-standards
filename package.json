@@ -1,0 +1,15 @@
+{
+  "name": "coding-standards",
+  "private": true,
+  "type": "module",
+  "description": "Portable coding standards for React, Python and LLM pipelines, written once for both Claude Code and Cursor.",
+  "license": "MIT",
+  "scripts": {
+    "check": "node scripts/check-docs.mjs",
+    "test": "node eslint-rules/packed-named-imports.test.mjs"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.59.0",
+    "eslint": "^9.39.0"
+  }
+}

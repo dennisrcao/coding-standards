@@ -23,7 +23,7 @@ consumer, an envelope with no queue, a confirmation seam on a pipeline that cann
 
 ## How to read this
 
-**You still copy whole files.** Adoption profiles in [`standards-adoption.yaml`](../standards-adoption.yaml)
+**You still copy whole files.** Adoption profiles in [`standards-adoption.yaml`](../../standards-adoption.yaml)
 list *what to copy*; this file lists *what binds when* inside those copies. The two are not the same —
 a profile can include `130` in the copy set while this file keeps half of `130` trigger-gated until a
 queue exists.
