@@ -10,7 +10,7 @@ alwaysApply: false
 
 App-level (global) keyboard shortcuts go through **one** small `useHotkeys` hook,
 not through a `window.addEventListener("keydown", …)` written by hand in each
-component. The pattern is a registry table plus a hook that canonicalizes `cmd` → platform client/ctrl.
+component. The pattern is a registry table plus a hook that canonicalizes `cmd` → platform meta/ctrl.
 
 When adopting this standard, copy the canonical hook at the bottom of this file into
 `src/hooks/use-hotkeys.ts` (or `src/utilities/hot-keys.ts`) in the target repo.
